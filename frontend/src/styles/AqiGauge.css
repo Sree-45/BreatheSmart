@@ -1,0 +1,116 @@
+.aqi-gauge-container {
+  background: #f8fafc;
+  border: 1px solid #eef2f9;
+  padding: 1.25rem;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.gauge-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1741a6;
+  margin-bottom: 1rem;
+}
+
+.gauge-visual {
+  position: relative;
+  width: 180px;
+  height: 105px;
+}
+
+.gauge-svg {
+  overflow: visible;
+}
+
+.gauge-value-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(1rem);
+}
+
+.gauge-value {
+  font-size: 2.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+}
+
+.gauge-category {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #374151;
+  margin-top: 0.5rem;
+  text-transform: capitalize;
+}
+
+.dominant-pollutant {
+  margin-top: 1rem;
+  background-color: #eef2f9;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  color: #4b5563;
+  font-weight: 500;
+  border: 1px solid #dbe4f3;
+}
+
+.legend-container {
+  width: 100%;
+  margin-top: 1.25rem;
+  border-top: 1px solid #eef2f9;
+  padding-top: 1.25rem;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.legend-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.legend-range {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Remove old legend styles */
+.legend-bar,
+.legend-labels {
+  display: none;
+}

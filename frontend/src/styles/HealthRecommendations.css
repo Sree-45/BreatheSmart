@@ -1,0 +1,84 @@
+.health-recommendations-container {
+  max-width: 32rem;
+  margin: 1.25rem auto 0;
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.health-recommendations-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1.25rem;
+  margin-top: 0;
+}
+
+.health-recommendations-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.health-recommendations-tab-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  border: 2px solid #e5e7eb;
+  background-color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.health-recommendations-tab-button:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.health-recommendations-tab-button.active {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.health-recommendations-tab-button.active svg,
+.health-recommendations-tab-button .active-icon {
+  color: #2563eb;
+}
+
+.health-recommendations-tab-button svg {
+  color: #6b7280;
+}
+
+.health-recommendations-tab-button.chevron {
+  border: 2px solid #e5e7eb;
+  background: #fff;
+}
+
+.health-recommendations-content {
+  border-top: 4px solid #2563eb;
+  padding-top: 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.health-recommendations-content-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.75rem;
+  margin-top: 0;
+}
+
+.health-recommendations-content-text {
+  font-size: 0.875rem;
+  line-height: 1.625;
+  color: #4b5563;
+  margin: 0;
+}

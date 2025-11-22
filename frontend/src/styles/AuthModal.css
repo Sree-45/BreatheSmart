@@ -1,0 +1,179 @@
+/* Inherit base modal styles from Home.css */
+.auth-modal {
+  max-width: 420px;
+  padding: 0;
+  /* overflow-y: auto; */ /* Removed to prevent scrolling */
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: 95vh; /* Adjusted slightly */
+}
+
+/* Make signup modal wider */
+.auth-modal.signup {
+  max-width: 600px; /* Increased width */
+}
+
+.auth-header {
+  padding: 24px 32px;
+  text-align: center;
+  border-bottom: 1px solid #eef2f9;
+  background-color: #f8fafc;
+}
+
+.auth-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1741a6;
+  margin: 0;
+}
+
+.auth-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-top: 8px;
+}
+
+.auth-form {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* New grid layout for the signup form */
+.auth-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.auth-form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+
+.input-group label .required-star {
+  color: #dc2626;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.input-group input {
+  padding: 12px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.auth-submit-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+}
+
+.auth-submit-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.auth-submit-btn:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #6b7280;
+  padding: 24px 32px;
+  background-color: #f8fafc;
+  border-top: 1px solid #eef2f9;
+}
+
+.auth-footer-link {
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.auth-footer-link:hover {
+  text-decoration: underline;
+}
+
+.auth-error {
+  color: #dc2626;
+  background-color: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 0.9rem;
+  text-align: center;
+  margin: -10px 0 10px 0;
+}
+
+/* Override for the close button in auth modals */
+.auth-modal .modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: #2563eb; /* Blue background */
+  color: white; /* White icon */
+  border-radius: 50%;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  border: 1px solid transparent;
+}
+
+.auth-modal .modal-close-btn:hover {
+  background-color: #fff; /* White background on hover */
+  color: #2563eb; /* Blue icon on hover */
+  border-color: #2563eb; /* Blue border on hover */
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-left-color: #fff;
+  border-radius: 50%;
+  animation: spinner 1s linear infinite;
+}
+
+@keyframes spinner {
+  to { transform: rotate(360deg); }
+}

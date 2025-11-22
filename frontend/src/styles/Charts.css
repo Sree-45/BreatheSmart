@@ -1,0 +1,47 @@
+.time-section {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+.time-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  position: relative;
+}
+.time-title {
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: #1741a6;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.time-icon {
+  color: #2563eb;
+  font-size: 1.3rem !important;
+}
+.chart-container {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.06);
+  margin-bottom: 12px;
+  position: relative;
+}
+.chart-expand-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chart-expand-btn:hover {
+  background: #e3eaff;
+}

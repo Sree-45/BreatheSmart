@@ -1,0 +1,22 @@
+.heatmap-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+.toggle-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #333;
+  font-weight: 500;
+}
+.toggle-icon {
+  color: #2563eb;
+  margin-right: 8px;
+  font-size: 1.2rem !important;
+}

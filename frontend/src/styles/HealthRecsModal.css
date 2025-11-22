@@ -1,0 +1,74 @@
+.health-recs-modal {
+    max-width: 600px;
+    width: 90%;
+}
+
+.health-recs-modal .modal-body {
+    padding: 8px 24px 24px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.health-recs-modal .health-recommendations-container {
+    max-width: 100%;
+    margin: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+/* New styles for the authentication prompt inside the modal */
+.auth-prompt-container {
+    text-align: center;
+    padding: 20px;
+    color: #333;
+}
+
+.auth-prompt-container h3 {
+    font-size: 1.5rem;
+    color: #1741a6;
+    margin-bottom: 12px;
+}
+
+.auth-prompt-container p {
+    font-size: 1rem;
+    color: #4b5563;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.auth-prompt-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+.auth-prompt-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.auth-prompt-btn.login {
+    background-color: #2563eb;
+    color: white;
+}
+
+.auth-prompt-btn.login:hover {
+    background-color: #1d4ed8;
+}
+
+.auth-prompt-btn.signup {
+    background-color: #f3f4f6;
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+}
+
+.auth-prompt-btn.signup:hover {
+    background-color: #e5e7eb;
+}
