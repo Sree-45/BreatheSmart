@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    gemini_api_key: str = ""
+    gemini_api_key: str = "replace-me"
     gemini_model: str = "gemini-2.5-pro"
 
     chroma_db_path: str = "./chroma_db"

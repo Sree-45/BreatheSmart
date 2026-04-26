@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import '../styles/AuthModal.css';
 import CloseIcon from '@mui/icons-material/Close';
 import { signup } from '../services/authService';
@@ -41,7 +42,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
     }
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop">
       <div className="modal-content auth-modal signup">
         <div className="auth-header">
@@ -84,7 +85,8 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
           <a onClick={onSwitchToLogin} className="auth-footer-link">Log In</a>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

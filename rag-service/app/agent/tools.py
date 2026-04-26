@@ -36,7 +36,7 @@ def fetch_aqi_for_city(city: str) -> dict:
     Uses the Google Air Quality API when GOOGLE_MAPS_API_KEY is set; otherwise
     returns a mock payload so the agent can still demonstrate the tool-calling flow.
     """
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
 
     # Hard-coded geocoding for the demo cities; in production the agent would call
     # a separate geocoding tool or proxy through Spring Boot.

@@ -322,6 +322,12 @@ const EmergencyModal = ({ onClose, location }) => {
 
 
 export default function Home() {
+    const FALLBACK_LOCATION = {
+        latitude: 17.385044,
+        longitude: 78.486671,
+        name: 'Hyderabad, India'
+    };
+
     const mapRef = useRef(null);
     const searchInputRef = useRef(null); // Ref for the search input
     const justSelectedPrediction = useRef(false); // Add this ref
@@ -408,7 +414,7 @@ export default function Home() {
             try {
                 await handleLocate(true);
             } catch (error) {
-                console.warn("Initial geolocation failed. The error handler will set a default location.");
+                console.warn("Initial geolocation failed. Falling back to a default location.");
             }
             // Then, load the Google Maps script. `initMap` will set isMapReady.
             loadGoogleMaps();
@@ -679,72 +685,104 @@ export default function Home() {
             return reject(error);
         }
 
+        if (!window.isSecureContext) {
+            const error = {
+                code: 5,
+                message: "Geolocation requires a secure context (HTTPS or localhost)."
+            };
+            handleLocationError(error, isInitialLoad);
+            return reject(error);
+        }
+
         const options = {
             enableHighAccuracy: true,      // ✅ CRITICAL: Request GPS
             timeout: 15000,                // Increased timeout
             maximumAge: 0                  // Always get fresh GPS data
         };
 
-        navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                const accuracy = pos.coords.accuracy;
+        const requestCurrentPosition = () => {
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const accuracy = pos.coords.accuracy;
 
-                // ✅ Log accuracy to verify GPS precision
-                console.log(`✅ Location Received - Accuracy: ${accuracy.toFixed(1)}m`);
-                console.log(`📍 Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+                    // ✅ Log accuracy to verify GPS precision
+                    console.log(`✅ Location Received - Accuracy: ${accuracy.toFixed(1)}m`);
+                    console.log(`📍 Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
 
-                // NEW: Check if the accuracy is good enough (e.g., under 1000 meters)
-                if (accuracy > 1000) {
-                    console.warn(`❌ Poor accuracy (${accuracy.toFixed(1)}m). Treating as failure.`);
-                    const error = {
-                        code: 4, // Custom code for poor accuracy
-                        message: "Location accuracy is too low."
-                    };
-                    if (!isInitialLoad) {
-                        setError("Could not get a precise location. Please try again in an open area.");
+                    // NEW: Check if the accuracy is good enough (e.g., under 1000 meters)
+                    if (accuracy > 1000) {
+                        console.warn(`❌ Poor accuracy (${accuracy.toFixed(1)}m). Treating as failure.`);
+                        const error = {
+                            code: 4, // Custom code for poor accuracy
+                            message: "Location accuracy is too low."
+                        };
+                        if (!isInitialLoad) {
+                            setError("Could not get a precise location. Please try again in an open area.");
+                        }
+                        // Trigger the error handler's fallback logic
+                        handleLocationError(error, isInitialLoad);
+                        return reject(error);
                     }
-                    // Trigger the error handler's fallback logic
-                    handleLocationError(error, isInitialLoad);
-                    return reject(error);
-                }
 
-                const newLoc = {
-                latitude: lat,
-                longitude: lng,
-                accuracy: accuracy
-                };
+                    const newLoc = {
+                        latitude: lat,
+                        longitude: lng,
+                        accuracy: accuracy
+                    };
 
-                // Set marker position first to ensure it's available for the map
-                setUserMarkerPosition({ lat, lng });
+                    // Set marker position first to ensure it's available for the map
+                    setUserMarkerPosition({ lat, lng });
 
-                let cityName = await reverseGeocode(lat, lng);
-                
-                const finalLocation = {
-                    ...newLoc,
-                    name: cityName ? `${cityName}` : "Current Location",
-                };
+                    let cityName = await reverseGeocode(lat, lng);
+                    
+                    const finalLocation = {
+                        ...newLoc,
+                        name: cityName ? `${cityName}` : "Current Location",
+                    };
 
-                setLocation(finalLocation);
+                    setLocation(finalLocation);
 
+                    if (mapRef.current && mapRef.current.panTo) {
+                        mapRef.current.panTo(
+                            new window.google.maps.LatLng(lat, lng)
+                        );
+                    }
+                    if (!isInitialLoad) {
+                        setError(null);
+                    }
+                    resolve(finalLocation);
+                },
+                (err) => {
+                    handleLocationError(err, isInitialLoad); // Use a shared error handler
+                    reject(err);
+                },
+                options
+            );
+        };
 
-                if (mapRef.current && mapRef.current.panTo) {
-                    mapRef.current.panTo(
-                        new window.google.maps.LatLng(lat, lng)
-                    );
-                }
-                if (!isInitialLoad) {
-                    setError(null);
-                }
-                resolve(finalLocation);
-            },
-            (err) => {
-                handleLocationError(err, isInitialLoad); // Use a shared error handler
-                reject(err);
-            },
-            options
-        );
+        if (navigator.permissions?.query) {
+            navigator.permissions
+                .query({ name: 'geolocation' })
+                .then((permissionStatus) => {
+                    if (permissionStatus.state === 'denied') {
+                        const error = {
+                            code: 1,
+                            message: 'Geolocation permission is blocked for this origin.'
+                        };
+                        handleLocationError(error, isInitialLoad);
+                        reject(error);
+                        return;
+                    }
+                    requestCurrentPosition();
+                })
+                .catch(() => {
+                    requestCurrentPosition();
+                });
+        } else {
+            requestCurrentPosition();
+        }
     });
 
     // NEW: Centralized error handler for geolocation
@@ -755,7 +793,7 @@ export default function Home() {
         switch(err.code) {
             case 1: // PERMISSION_DENIED
                 errorCode = "PERMISSION_DENIED";
-                errorMessage += "❌ Check your browser location settings and allow access.";
+                errorMessage += "Location access is blocked. Allow location in browser site settings and Windows Settings > Privacy & security > Location.";
                 break;
             case 2: // POSITION_UNAVAILABLE
                 errorCode = "POSITION_UNAVAILABLE";
@@ -769,6 +807,10 @@ export default function Home() {
                 errorCode = "POOR_ACCURACY";
                 errorMessage = "Could not get a precise location. Using default.";
                 break;
+            case 5: // CUSTOM: INSECURE_CONTEXT
+                errorCode = "INSECURE_CONTEXT";
+                errorMessage = "Unable to retrieve your location. Geolocation works only on HTTPS or localhost.";
+                break;
             default:
                 errorCode = "UNKNOWN_ERROR";
                 errorMessage += "An unknown error occurred.";
@@ -776,15 +818,12 @@ export default function Home() {
         
         console.error(`❌ Geolocation Error [${errorCode}]:`, err.message);
         
-        if (!isInitialLoad) {
-            setError(errorMessage);
-        }
+        setError(errorMessage);
+        setIsLoading(false);
 
-        // Fallback to default location only if it's the initial load and no location is set yet
-        if (isInitialLoad && !location) {
-            // REMOVED: No longer falling back to a default location.
-            // The error state will be shown instead.
-            setError(errorMessage); // Ensure error is set for initial load failure
+        // Ensure app remains usable even if geolocation fails.
+        if (!location) {
+            setLocation(FALLBACK_LOCATION);
         }
     };
 
@@ -876,7 +915,7 @@ export default function Home() {
                 ...prevUser,
                 location: newLocationName, // Assuming primary location is just a name
             }));
-        } else if (locationToUpdate !== null) {
+        } else if (locationToUpdate !== null && locationToUpdate !== 'add') {
             // Update existing favorite location
             setUser(prevUser => ({
                 ...prevUser,
@@ -920,7 +959,8 @@ export default function Home() {
     };
 
     const handleProfileClick = () => {
-        if (isLoggedIn) {
+        const token = localStorage.getItem('authToken');
+        if (isLoggedIn || token) {
             setShowProfileModal(true);
         } else {
             setLoginPrompt('Log in to view your profile.');

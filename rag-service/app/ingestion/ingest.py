@@ -20,7 +20,13 @@ def ingest_directory(directory: str = "./data") -> Dict[str, int]:
 
     chunks = split_documents(docs)
     vs = get_vectorstore()
-    vs.add_documents(chunks)
+    
+    # ChromaDB has max batch size of 5461 by default, so we batch inserts.
+    batch_size = 5000
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        vs.add_documents(batch)
+        
     logger.info("ingested %d documents into %d chunks from %s", len(docs), len(chunks), directory)
     return {"loaded": len(docs), "chunks": len(chunks)}
 

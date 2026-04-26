@@ -10,10 +10,12 @@ export default defineConfig({
   ],
   server: {
     https: true, // Enable HTTPS
-    // Remove or comment out the 'key' and 'cert' paths
-    // https: {
-    //   key: fs.readFileSync('./localhost-key.pem'),
-    //   cert: fs.readFileSync('./localhost.pem'),
-    // }
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false // Set to false if the backend is HTTP, not HTTPS
+      }
+    }
   }
 })

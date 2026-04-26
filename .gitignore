@@ -1,12 +1,27 @@
 .vscode/
+
+# Global env and secrets
+.env
+.env.*
+*.env
+*.env.*
+*.key
+*.p12
+*.jks
+*.pfx
+
 frontend/.env
 backend/.env
 backend/target/
 backend/uploads/
 frontend/node_modules/
+frontend/dist/
+uploads/
+uploads/reports/
 
 # rag-service
 rag-service/.env
+rag-service/.env.*
 rag-service/__pycache__/
 rag-service/**/__pycache__/
 rag-service/.venv/
@@ -17,3 +32,4 @@ rag-service/chroma_db/
 rag-service/data/*.html
 rag-service/data/*.htm
 rag-service/data/*.pdf
+rag-service/data/pdfs/

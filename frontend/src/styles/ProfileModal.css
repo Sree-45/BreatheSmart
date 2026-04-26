@@ -1,3 +1,19 @@
+:root {
+  --space-2: 8px;
+  --space-3: 12px;
+  --radius-md: 8px;
+  --color-success-bg: #d1fae5;
+  --color-success-fg: #047857;
+  --color-success-border: #a7f3d0;
+  --color-error-bg: #fee2e2;
+  --color-error-fg: #dc2626;
+  --color-error-border: #fecaca;
+  --color-info-bg: #dbeafe;
+  --color-info-fg: #1d4ed8;
+  --color-info-border: #bfdbfe;
+  --color-text-tertiary: #6b7280;
+}
+
 /* Base modal styles */
 .profile-modal {
   max-width: 900px;

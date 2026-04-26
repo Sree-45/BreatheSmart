@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import '../styles/AuthModal.css'; // Use the new shared CSS
 import CloseIcon from '@mui/icons-material/Close';
 import { login } from '../services/authService';
@@ -24,7 +25,7 @@ const LoginModal = ({ onClose, onLoginSuccess, onSwitchToSignup }) => {
     }
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop">
       <div className="modal-content auth-modal">
         <div className="auth-header">
@@ -67,7 +68,8 @@ const LoginModal = ({ onClose, onLoginSuccess, onSwitchToSignup }) => {
             <a onClick={onSwitchToSignup} className="auth-footer-link">Sign Up</a>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

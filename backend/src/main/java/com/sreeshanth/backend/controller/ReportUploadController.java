@@ -96,6 +96,21 @@ public class ReportUploadController {
                     ingest.chunks() == null ? 0 : ingest.chunks(),
                     (ingest.chunks() != null && ingest.chunks() == 1) ? "" : "s"
             );
+        } catch (IllegalStateException ise) {
+             try {
+                Files.deleteIfExists(stored.absolutePath());
+            } catch (IOException ignore) { }
+            // Catch our wrapper exception which may contain the 400 bad request error from python
+            if (ise.getMessage().contains("400 Bad Request")) {
+                 return ResponseEntity.status(400).body(Map.of(
+                    "error", "Document doesn't appear to be a medical report. Please upload healthcare documents, lab reports, or clinical summaries.",
+                    "detail", ise.getMessage()
+                ));
+            }
+            return ResponseEntity.status(503).body(Map.of(
+                    "error", "rag-service processing failed; report not indexed.",
+                    "detail", ise.getMessage()
+            ));
         } catch (Exception e) {
             // Soft-fail: keep the file + record the upload even if rag-service is down.
             // The user can retry ingestion later; the file is already on disk.
