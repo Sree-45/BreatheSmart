@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
 import '../styles/Home.css';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -338,6 +339,8 @@ export default function Home() {
     const [forecastData, setForecastData] = useState(null);
     const [nationalAqi, setNationalAqi] = useState(null);
     
+    const navigate = useNavigate();
+
     // Loading and error states
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -907,6 +910,7 @@ export default function Home() {
 
         setIsLoggedIn(false);
         setShowProfileModal(false);
+        navigate('/');
     };
 
     const cancelSelectOnMap = () => {
@@ -1234,6 +1238,7 @@ export default function Home() {
                     onClose={() => setShowHealthRecsModal(false)}
                     airQualityData={currentData}
                     isLoggedIn={isLoggedIn}
+                    user={user}
                     onLoginRequest={() => {
                         setShowHealthRecsModal(false);
                         setShowLoginModal(true);
