@@ -7,6 +7,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
 import SavedPlaces from './SavedPlaces';
 import { updateUser } from '../services/userService';
 import { uploadHealthReport } from '../services/aiService';
@@ -27,6 +28,7 @@ const ProfileModal = ({
   onSearchForLocation,
   onViewLocation,
   onDeleteLocation,
+  onUseCurrentLocation,
 }) => {
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
@@ -44,9 +46,12 @@ const ProfileModal = ({
     setIsSaving(true);
     statusSetter(null);
     try {
-      const { primaryLocation, savedLocations, ...userToSave } = user;
-      const updatedUser = await updateUser(user.id, userToSave);
+      // Send the full user — including primaryLocation and savedLocations — so a
+      // save from the modal does not silently wipe location data the user added
+      // outside the form (e.g. via "Add from Map").
+      const updatedUser = await updateUser(user.id, user);
       setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       statusSetter({ kind: 'ok', text: 'Saved.' });
     } catch (error) {
       console.error('Failed to save profile:', error);
@@ -152,6 +157,37 @@ const ProfileModal = ({
               onChange={(e) => setUser({ ...user, dob: e.target.value })}
             />
           </div>
+        </div>
+      </div>
+
+      <div className="form-section">
+        <h4 className="form-section-title">Primary Location</h4>
+        {user.primaryLocation ? (
+          <div className="primary-location-row">
+            <div className="primary-location-info">
+              <span className="primary-location-name">{user.primaryLocation.name}</span>
+              {(user.primaryLocation.latitude != null && user.primaryLocation.longitude != null) && (
+                <span className="primary-location-coords">
+                  {Number(user.primaryLocation.latitude).toFixed(4)}, {Number(user.primaryLocation.longitude).toFixed(4)}
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="empty-state" style={{ padding: '8px 0' }}>No primary location set.</p>
+        )}
+        <div className="primary-location-actions">
+          <button type="button" className="action-btn" onClick={() => onSelectOnMap('primary')}>
+            Set from Map
+          </button>
+          <button type="button" className="action-btn" onClick={() => onSearchForLocation('primary')}>
+            Set from Search
+          </button>
+          {onUseCurrentLocation && (
+            <button type="button" className="action-btn" onClick={onUseCurrentLocation}>
+              <MyLocationIcon fontSize="small" /> Use Current Location
+            </button>
+          )}
         </div>
       </div>
 

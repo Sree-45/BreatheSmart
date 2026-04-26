@@ -1,6 +1,8 @@
 package com.sreeshanth.backend.service;
 
 import com.sreeshanth.backend.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,8 @@ import java.util.Map;
  */
 @Service
 public class AiSummaryService {
+
+    private static final Logger log = LoggerFactory.getLogger(AiSummaryService.class);
 
     private final ChatClient chatClient;
 
@@ -50,11 +54,29 @@ public class AiSummaryService {
                 age == null ? "unknown" : age, conditions, city, aqi, pollutant
         );
 
-        return chatClient.prompt()
-                .system(system)
-                .user(userMsg)
-                .call()
-                .content();
+        try {
+            return chatClient.prompt()
+                    .system(system)
+                    .user(userMsg)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            // Degrade gracefully: a templated digest is better than a broken banner.
+            log.warn("AiSummaryService falling back to deterministic digest: {}", e.getMessage());
+            return buildFallbackDigest(city, aqi, pollutant, conditions);
+        }
+    }
+
+    private static String buildFallbackDigest(String city, Object aqi, Object pollutant, String conditions) {
+        String aqiText = aqi == null || "unknown".equals(aqi.toString()) ? "currently unavailable" : aqi.toString();
+        String pollutantText = pollutant == null || "unknown".equals(pollutant.toString()) ? "particulate matter" : pollutant.toString();
+        String action = "no reported conditions".equals(conditions)
+                ? "Limit prolonged outdoor exertion if AQI exceeds 100."
+                : "Given your conditions, keep windows closed and avoid outdoor exercise until levels improve.";
+        return String.format(
+                "Air quality in %s today is %s with %s leading the mix. %s",
+                city, aqiText, pollutantText, action
+        );
     }
 
     private static Integer computeAge(String dob) {

@@ -46,7 +46,8 @@ public final class RagDtos {
             Map<String, Object> recommendation,
             List<Source> sources,
             Boolean fallback,
-            @JsonProperty("latency_ms") Integer latencyMs
+            @JsonProperty("latency_ms") Integer latencyMs,
+            @JsonProperty("request_id") String requestId
     ) {}
 
     public record IngestReportRequest(

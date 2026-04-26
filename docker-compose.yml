@@ -1,0 +1,71 @@
+services:
+
+  mongo:
+    image: mongo:7
+    container_name: breathe-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [breathe-net]
+
+  rag-service:
+    build:
+      context: ./rag-service
+      dockerfile: Dockerfile
+    container_name: breathe-rag
+    restart: unless-stopped
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?GEMINI_API_KEY must be set in .env}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-pro}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      CHROMA_DB_PATH: /app/chroma_db
+      LOG_FORMAT: json
+      LOG_LEVEL: INFO
+      UVICORN_RELOAD: "false"
+      CORS_ALLOWED_ORIGINS: http://localhost:5173,https://localhost:5173,http://backend:8080
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/app/chroma_db
+      - ./rag-service/data:/app/data:ro
+    networks: [breathe-net]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: breathe-backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rag-service:
+        condition: service_started
+    environment:
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/breathesmart}
+      RAG_SERVICE_BASE_URL: http://rag-service:8000
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-replace-me}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?GEMINI_API_KEY must be set in .env}
+      APP_UPLOADS_DIR: /app/uploads/reports
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_uploads:/app/uploads
+    networks: [breathe-net]
+
+networks:
+  breathe-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  chroma_data:
+  backend_uploads:

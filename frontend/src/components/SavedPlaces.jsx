@@ -6,14 +6,19 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import '../styles/SavedPlaces.css';
 
-const SavedPlaces = ({
-  user,
-  onAdd,
-  onSearch,
-  onView,
-  onEdit,
-  onDelete,
-}) => {
+const formatCoords = (loc) => {
+  if (loc.address) return loc.address;
+  const lat = loc.latitude ?? loc.lat;
+  const lng = loc.longitude ?? loc.lng;
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+  return 'Coordinates unavailable';
+};
+
+const SavedPlaces = ({ user, onAdd, onSearch, onView, onEdit, onDelete }) => {
+  const places = user?.savedLocations || [];
+
   return (
     <div className="saved-places-container">
       <div className="saved-places-actions">
@@ -26,12 +31,12 @@ const SavedPlaces = ({
       </div>
 
       <div className="saved-places-list">
-        {user.savedLocations && user.savedLocations.length > 0 ? (
-          user.savedLocations.map((loc, index) => (
-            <div key={index} className="saved-place-item">
+        {places.length > 0 ? (
+          places.map((loc, index) => (
+            <div key={`${loc.name}-${index}`} className="saved-place-item">
               <div className="saved-place-info">
                 <span className="saved-place-name">{loc.name}</span>
-                <span className="saved-place-address">{loc.address || `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`}</span>
+                <span className="saved-place-address">{formatCoords(loc)}</span>
               </div>
               <div className="saved-place-actions">
                 <button className="action-icon-btn" title="View on Map" onClick={() => onView(loc)}>

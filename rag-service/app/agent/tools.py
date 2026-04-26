@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Optional
 
@@ -5,6 +6,8 @@ import requests
 from langchain_core.tools import tool
 
 from app.rag.pipeline import run_recommendation
+
+logger = logging.getLogger(__name__)
 
 
 def _fetch_live_aqi(latitude: float, longitude: float, api_key: str) -> Optional[dict]:
@@ -25,7 +28,8 @@ def _fetch_live_aqi(latitude: float, longitude: float, api_key: str) -> Optional
             "category": primary.get("category"),
             "dominant_pollutant": primary.get("dominantPollutant"),
         }
-    except Exception:
+    except Exception as exc:
+        logger.warning("fetch_live_aqi failed (lat=%s lng=%s): %s", latitude, longitude, exc)
         return None
 
 

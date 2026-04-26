@@ -1,0 +1,8 @@
+target
+.idea
+.vscode
+*.iml
+uploads
+.env
+.env.*
+HELP.md

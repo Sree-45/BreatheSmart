@@ -2,13 +2,16 @@ import json
 import logging
 import re
 import time
+import uuid
 from typing import Any, Dict, Optional
 
+from app.observability.logging_config import event_logger
 from app.rag.llm import get_llm
 from app.rag.prompt import ADVISORY_FALLBACK, ADVISORY_RAG, RAG_PROMPT
 from app.rag.retriever import has_relevant_results, retrieve
 
 logger = logging.getLogger(__name__)
+events = event_logger("rag.events")
 
 
 def _build_query(user_profile: dict, aqi_data: dict, question: Optional[str]) -> str:
@@ -41,11 +44,38 @@ def _format_context(results) -> str:
     )
 
 
+def _coerce_recommendation(parsed: Any) -> Dict[str, Any]:
+    """Make sure the LLM output matches the {primary, secondary} schema regardless of how it returned."""
+    if isinstance(parsed, dict):
+        primary = parsed.get("primary") or []
+        secondary = parsed.get("secondary") or []
+        if not isinstance(primary, list):
+            primary = [str(primary)]
+        if not isinstance(secondary, list):
+            secondary = [str(secondary)]
+        return {"primary": primary[:4], "secondary": secondary[:4]}
+    return {"primary": [str(parsed)[:500]], "secondary": []}
+
+
+_FALLBACK_RECOMMENDATION = {
+    "primary": [
+        "Limit outdoor exertion until air quality improves.",
+        "Keep windows closed and run an air purifier indoors if available.",
+        "Wear a well-fitted N95 mask if you must go outside for extended periods.",
+    ],
+    "secondary": [
+        "Stay hydrated and avoid smoking or other indoor air pollutants.",
+        "Monitor symptoms (cough, wheezing, chest tightness) and contact a doctor if they worsen.",
+    ],
+}
+
+
 def run_recommendation(
     user_profile: dict,
     aqi_data: dict,
     question: Optional[str] = None,
 ) -> Dict[str, Any]:
+    request_id = uuid.uuid4().hex[:12]
     start = time.time()
     if not question:
         question = (
@@ -56,6 +86,7 @@ def run_recommendation(
     user_id = user_profile.get("user_id")
     results = retrieve(query, user_id=user_id, k=4)
     relevant = has_relevant_results(results)
+    retrieve_ms = int((time.time() - start) * 1000)
 
     prompt_inputs = {
         "advisory": ADVISORY_RAG if relevant else ADVISORY_FALLBACK,
@@ -73,16 +104,34 @@ def run_recommendation(
     }
 
     prompt = RAG_PROMPT.format(**prompt_inputs)
-    llm = get_llm()
-    response = llm.invoke(prompt)
-    raw = response.content if hasattr(response, "content") else str(response)
-    cleaned = _strip_json_fence(raw)
-
+    llm_start = time.time()
+    llm_failed = False
+    parse_failed = False
     try:
-        recommendation = json.loads(cleaned)
-    except json.JSONDecodeError:
-        logger.warning("Gemini returned non-JSON output, wrapping raw text")
-        recommendation = {"primary": [cleaned[:500]], "secondary": []}
+        llm = get_llm()
+        response = llm.invoke(prompt)
+        raw = response.content if hasattr(response, "content") else str(response)
+        cleaned = _strip_json_fence(raw)
+        try:
+            recommendation = _coerce_recommendation(json.loads(cleaned))
+        except json.JSONDecodeError:
+            parse_failed = True
+            logger.warning(
+                "rag.recommend: LLM returned non-JSON output; coercing to schema",
+                extra={"request_id": request_id},
+            )
+            recommendation = {"primary": [cleaned[:500]], "secondary": []}
+    except Exception as exc:
+        # Degrade gracefully: serve a generic safety recommendation instead of 500ing.
+        # Surfaces in JD's "fallback and degradation strategies" pillar.
+        llm_failed = True
+        logger.error(
+            "rag.recommend: LLM call failed, returning fallback recommendation",
+            extra={"request_id": request_id, "error": str(exc)},
+        )
+        recommendation = dict(_FALLBACK_RECOMMENDATION)
+
+    llm_ms = int((time.time() - llm_start) * 1000)
 
     sources = [
         {
@@ -95,17 +144,36 @@ def run_recommendation(
     ]
 
     elapsed_ms = int((time.time() - start) * 1000)
-    logger.info(
-        "rag.recommend completed: k=%d relevant=%s fallback=%s latency_ms=%d",
-        len(results),
-        relevant,
-        not relevant,
-        elapsed_ms,
+    events.info(
+        "rag.recommend",
+        extra={
+            "event": "rag.recommend",
+            "request_id": request_id,
+            "user_id": user_id,
+            "query": query,
+            "k": len(results),
+            "retrieved": [
+                {
+                    "source": s["source"],
+                    "scope": s["scope"],
+                    "score": s["score"],
+                }
+                for s in sources
+            ],
+            "min_score": min((s["score"] for s in sources), default=None),
+            "fallback_grounding": not relevant,
+            "llm_failed": llm_failed,
+            "json_parse_failed": parse_failed,
+            "retrieve_latency_ms": retrieve_ms,
+            "llm_latency_ms": llm_ms,
+            "total_latency_ms": elapsed_ms,
+        },
     )
 
     return {
         "recommendation": recommendation,
         "sources": sources,
-        "fallback": not relevant,
+        "fallback": not relevant or llm_failed,
         "latency_ms": elapsed_ms,
+        "request_id": request_id,
     }

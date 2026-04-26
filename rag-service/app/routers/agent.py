@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
@@ -5,7 +6,9 @@ from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
 from app.agent.graph import build_graph
+from app.config import settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["agent"])
 
 
@@ -37,16 +40,25 @@ def analyze(req: AnalyzeRequest):
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
+    # Free-form user message — tool ordering is enforced by the system prompt
+    # in graph.py, not stuffed into the user turn. This keeps the agentic
+    # narrative clean: the LLM is the one deciding which tools to call.
     user_msg = (
         f"I live in {req.city}. "
         f"Age: {req.age if req.age is not None else 'unspecified'}. "
         f"Medical conditions: {req.medical_conditions or 'none reported'}. "
-        f"{req.question or 'What precautions should I take given the current air quality?'} "
-        f"First call fetch_aqi_for_city to get the current air quality, then call "
-        f"get_health_recommendation with my profile and the AQI data, then summarize the result."
+        f"{req.question or 'What precautions should I take given the current air quality?'}"
     )
 
-    final_state = graph.invoke({"messages": [HumanMessage(content=user_msg)]})
+    try:
+        final_state = graph.invoke(
+            {"messages": [HumanMessage(content=user_msg)]},
+            config={"recursion_limit": settings.agent_recursion_limit},
+        )
+    except Exception as e:
+        logger.exception("agent.analyze failed")
+        raise HTTPException(status_code=502, detail=f"agent execution failed: {e}")
+
     messages = final_state["messages"]
     final = messages[-1]
 

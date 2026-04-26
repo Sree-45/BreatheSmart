@@ -48,13 +48,18 @@ public class RagServiceClient {
                 null
         );
 
-        return webClient.post()
-                .uri("/recommend")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(RagDtos.RecommendResponse.class)
-                .timeout(Duration.ofSeconds(60))
-                .block();
+        try {
+            return webClient.post()
+                    .uri("/recommend")
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(RagDtos.RecommendResponse.class)
+                    .timeout(Duration.ofSeconds(60))
+                    .block();
+        } catch (WebClientResponseException e) {
+            // Re-raised so AiController.mapDownstreamFailure sees the original status.
+            throw e;
+        }
     }
 
     /**

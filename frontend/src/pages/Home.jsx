@@ -39,6 +39,7 @@ import ProfileModal from '../components/ProfileModal';
 import HealthRecsModal from '../components/HealthRecsModal';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import SosIcon from '@mui/icons-material/Sos';
+import { updateUser } from '../services/userService';
 
 ChartJS.register(
   CategoryScale,
@@ -368,42 +369,50 @@ export default function Home() {
     const [locationToUpdate, setLocationToUpdate] = useState(null); // To track which location is being updated
     const [loginPrompt, setLoginPrompt] = useState(''); // For prompting login for features
 
-    // Lifted user state from ProfileModal
-    const [user, setUser] = useState({
-        name: 'Sreeshanth S',
-        email: 'sreeshanth@example.com',
-        phone: '987-654-3210',
-        dob: '1997-08-15',
-        location: 'Hyderabad, India',
-        height: '175 cm',
-        weight: '70 kg',
-        medicalConditions: 'Asthma, Pollen Allergy',
-        savedLocations: [] // Corrected from favoriteLocations to savedLocations
-    });
+    // User state — null until we hydrate from localStorage or a fresh login.
+    // Never seed with fake data, otherwise it leaks into the logged-in user via merge.
+    const [user, setUser] = useState(null);
 
-    // Add this handler
-    const handleLocationConfirm = (location, type) => {
-      if (type === 'primary') {
-        setUser({ ...user, location: `${location.lat}, ${location.lng}` });
-      } else if (type === 'favorite') {
-        // This will be handled in ProfileModal via setUser
-      }
-    };
-
-    // Effect to check for existing login session on component mount
+    // Hydrate auth state on mount. A token without a parseable user (or vice versa)
+    // is treated as a corrupted session and fully cleared.
     useEffect(() => {
         const token = localStorage.getItem('authToken');
         const storedUser = localStorage.getItem('user');
-        if (token && storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-                setIsLoggedIn(true);
-            } catch (e) {
-                console.error("Failed to parse user data from localStorage", e);
-                // Clear corrupted data
+        if (!token || !storedUser) {
+            if (token || storedUser) {
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('user');
             }
+            return;
+        }
+        try {
+            const parsed = JSON.parse(storedUser);
+            if (!parsed || typeof parsed !== 'object' || !parsed.id) {
+                throw new Error('stored user is missing id');
+            }
+            setUser(parsed);
+            setIsLoggedIn(true);
+        } catch (e) {
+            console.error('Failed to hydrate user from localStorage:', e);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+        }
+    }, []);
+
+    // Persist a user update to backend + localStorage + React state. Used by every
+    // path that mutates the profile outside the modal's explicit Save button.
+    const persistUser = useCallback(async (nextUser) => {
+        if (!nextUser?.id) return nextUser;
+        try {
+            const saved = await updateUser(nextUser.id, nextUser);
+            setUser(saved);
+            localStorage.setItem('user', JSON.stringify(saved));
+            return saved;
+        } catch (e) {
+            console.error('Failed to persist user update:', e);
+            // Keep the optimistic React state but warn — the next save will retry.
+            setUser(nextUser);
+            return nextUser;
         }
     }, []);
 
@@ -711,19 +720,20 @@ export default function Home() {
                     console.log(`✅ Location Received - Accuracy: ${accuracy.toFixed(1)}m`);
                     console.log(`📍 Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
 
-                    // NEW: Check if the accuracy is good enough (e.g., under 1000 meters)
-                    if (accuracy > 1000) {
-                        console.warn(`❌ Poor accuracy (${accuracy.toFixed(1)}m). Treating as failure.`);
+                    // Wi-Fi-only laptops can return accuracies in the 5-50km range; a hard
+                    // 1km cutoff was rejecting perfectly usable positions. Use a softer
+                    // 25km threshold and only warn rather than fall back hard.
+                    if (accuracy > 25000) {
+                        console.warn(`❌ Very poor accuracy (${accuracy.toFixed(1)}m). Treating as failure.`);
                         const error = {
-                            code: 4, // Custom code for poor accuracy
-                            message: "Location accuracy is too low."
+                            code: 4,
+                            message: 'Location accuracy is too low to be useful.',
                         };
-                        if (!isInitialLoad) {
-                            setError("Could not get a precise location. Please try again in an open area.");
-                        }
-                        // Trigger the error handler's fallback logic
                         handleLocationError(error, isInitialLoad);
                         return reject(error);
+                    }
+                    if (accuracy > 1000) {
+                        console.warn(`⚠️ Coarse accuracy (${accuracy.toFixed(1)}m). Continuing anyway.`);
                     }
 
                     const newLoc = {
@@ -762,27 +772,11 @@ export default function Home() {
             );
         };
 
-        if (navigator.permissions?.query) {
-            navigator.permissions
-                .query({ name: 'geolocation' })
-                .then((permissionStatus) => {
-                    if (permissionStatus.state === 'denied') {
-                        const error = {
-                            code: 1,
-                            message: 'Geolocation permission is blocked for this origin.'
-                        };
-                        handleLocationError(error, isInitialLoad);
-                        reject(error);
-                        return;
-                    }
-                    requestCurrentPosition();
-                })
-                .catch(() => {
-                    requestCurrentPosition();
-                });
-        } else {
-            requestCurrentPosition();
-        }
+        // We deliberately do NOT short-circuit on navigator.permissions.query here:
+        // its 'denied' state can lag behind the real site permission (e.g. after
+        // re-granting via DevTools) and the prompt itself is sufficient. Just call
+        // getCurrentPosition and surface whatever code the OS/browser actually returns.
+        requestCurrentPosition();
     });
 
     // NEW: Centralized error handler for geolocation
@@ -793,7 +787,9 @@ export default function Home() {
         switch(err.code) {
             case 1: // PERMISSION_DENIED
                 errorCode = "PERMISSION_DENIED";
-                errorMessage += "Location access is blocked. Allow location in browser site settings and Windows Settings > Privacy & security > Location.";
+                errorMessage +=
+                    "Location access was denied. If you just allowed it, refresh the page — Chrome's permission cache can lag. " +
+                    "Also confirm: browser site settings → Allow location, and Windows Settings → Privacy & security → Location is on for this app.";
                 break;
             case 2: // POSITION_UNAVAILABLE
                 errorCode = "POSITION_UNAVAILABLE";
@@ -903,50 +899,75 @@ export default function Home() {
         });
     }, [reverseGeocode]);
 
-    // NEW: Dedicated handler for when "Confirm Location" is clicked on the map
+    // NEW: Dedicated handler for when "Confirm Location" is clicked on the map.
+    // Shape of every saved/primary location matches the backend Location.java contract:
+    // { name, latitude, longitude, address, dateAdded }
     const handleConfirmLocation = useCallback(async (lat, lng) => {
-        let city = await reverseGeocode(lat, lng);
-        const newLocationName = city || 'Selected Location';
-        const newLocation = { name: newLocationName, lat, lng };
+        if (!user) {
+            setIsSelectingLocation(false);
+            setLocationToUpdate(null);
+            return;
+        }
+        const city = await reverseGeocode(lat, lng);
+        const baseName = city || 'Selected Location';
 
-        // If we are updating the primary user location
+        let nextUser;
         if (locationToUpdate === 'primary') {
-             setUser(prevUser => ({
-                ...prevUser,
-                location: newLocationName, // Assuming primary location is just a name
-            }));
-        } else if (locationToUpdate !== null && locationToUpdate !== 'add') {
-            // Update existing favorite location
-            setUser(prevUser => ({
-                ...prevUser,
-                savedLocations: prevUser.savedLocations.map((loc, index) => 
-                    index === locationToUpdate ? { ...loc, ...newLocation } : loc
-                )
-            }));
+            nextUser = {
+                ...user,
+                primaryLocation: {
+                    name: baseName,
+                    latitude: lat,
+                    longitude: lng,
+                    address: city || null,
+                    dateAdded: user.primaryLocation?.dateAdded || new Date().toISOString(),
+                },
+            };
+        } else if (typeof locationToUpdate === 'number') {
+            // Edit an existing saved location.
+            nextUser = {
+                ...user,
+                savedLocations: (user.savedLocations || []).map((loc, idx) =>
+                    idx === locationToUpdate
+                        ? { ...loc, name: loc.name || baseName, latitude: lat, longitude: lng, address: city || loc.address || null }
+                        : loc,
+                ),
+            };
         } else {
-            // Add new favorite location
-            // Prompt for a name before adding
-            const customName = prompt("Enter a name for this location:", newLocationName);
-            if (customName) { // Only add if the user provides a name
-                newLocation.name = customName;
-                setUser(prevUser => ({
-                    ...prevUser,
-                    savedLocations: [...prevUser.savedLocations, newLocation]
-                }));
+            // Add a new saved location — prompt for a friendly name first.
+            const customName = window.prompt('Enter a name for this location:', baseName);
+            if (!customName) {
+                setIsSelectingLocation(false);
+                setLocationToUpdate(null);
+                setShowProfileModal(true);
+                return;
             }
+            nextUser = {
+                ...user,
+                savedLocations: [
+                    ...(user.savedLocations || []),
+                    {
+                        name: customName,
+                        latitude: lat,
+                        longitude: lng,
+                        address: city || null,
+                        dateAdded: new Date().toISOString(),
+                    },
+                ],
+            };
         }
 
-        // Reset state and re-open modal
+        await persistUser(nextUser);
         setIsSelectingLocation(false);
         setLocationToUpdate(null);
         setShowProfileModal(true);
-    }, [reverseGeocode, locationToUpdate]);
+    }, [reverseGeocode, locationToUpdate, user, persistUser]);
 
     const handleLogout = () => {
-        // Clear token and user data from localStorage
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
 
+        setUser(null);
         setIsLoggedIn(false);
         setShowProfileModal(false);
         navigate('/');
@@ -959,8 +980,7 @@ export default function Home() {
     };
 
     const handleProfileClick = () => {
-        const token = localStorage.getItem('authToken');
-        if (isLoggedIn || token) {
+        if (isLoggedIn && user) {
             setShowProfileModal(true);
         } else {
             setLoginPrompt('Log in to view your profile.');
@@ -978,13 +998,17 @@ export default function Home() {
     };
 
     const handleLoginSuccess = (loginData) => {
-        const { token, user: loggedInUser } = loginData;
-        
-        // Store token and user data in localStorage
+        const { token, user: loggedInUser } = loginData || {};
+        if (!token || !loggedInUser) {
+            console.error('Login response is missing token or user');
+            return;
+        }
         localStorage.setItem('authToken', token);
         localStorage.setItem('user', JSON.stringify(loggedInUser));
 
-        setUser(prevUser => ({...prevUser, ...loggedInUser})); // Merge logged-in user data
+        // Replace user state — never merge with hardcoded defaults, that pollutes the
+        // record with bogus fields that will never round-trip through the backend.
+        setUser(loggedInUser);
         setIsLoggedIn(true);
         setShowLoginModal(false);
         setShowSignupModal(false);
@@ -998,19 +1022,22 @@ export default function Home() {
     };
 
     const handleViewLocationOnMap = (loc) => {
-        if (mapRef.current) {
-            mapRef.current.panToAndShowInfo(loc);
-            setShowProfileModal(false);
-        }
+        if (!mapRef.current || !loc) return;
+        // Backend uses latitude/longitude; the map helper expects {lat, lng}. Adapt here.
+        const lat = loc.latitude ?? loc.lat;
+        const lng = loc.longitude ?? loc.lng;
+        if (lat == null || lng == null) return;
+        mapRef.current.panToAndShowInfo({ lat, lng });
+        setShowProfileModal(false);
     };
 
-    const handleDeleteLocation = (indexToDelete) => {
-        if (window.confirm('Are you sure you want to delete this saved location?')) {
-            setUser(prevUser => ({
-                ...prevUser,
-                savedLocations: prevUser.savedLocations.filter((_, index) => index !== indexToDelete)
-            }));
-        }
+    const handleDeleteLocation = async (indexToDelete) => {
+        if (!user || !window.confirm('Are you sure you want to delete this saved location?')) return;
+        const nextUser = {
+            ...user,
+            savedLocations: (user.savedLocations || []).filter((_, idx) => idx !== indexToDelete),
+        };
+        await persistUser(nextUser);
     };
 
     const handleSearchLocationForProfile = (type) => {
@@ -1021,20 +1048,24 @@ export default function Home() {
     };
 
     const handleGetCurrentLocationForProfile = async () => {
+        if (!user) return;
         try {
-            const currentLoc = await handleLocate(); // Use existing locate function
-            if (currentLoc && currentLoc.latitude && currentLoc.longitude) {
-                const locationName = await reverseGeocode(currentLoc.latitude, currentLoc.longitude);
-                const newPrimaryLocation = {
-                    name: locationName || "Current Location",
+            const currentLoc = await handleLocate();
+            if (!currentLoc?.latitude || !currentLoc?.longitude) return;
+            const locationName = await reverseGeocode(currentLoc.latitude, currentLoc.longitude);
+            await persistUser({
+                ...user,
+                primaryLocation: {
+                    name: locationName || 'Current Location',
                     latitude: currentLoc.latitude,
                     longitude: currentLoc.longitude,
-                };
-                setUser(prevUser => ({ ...prevUser, primaryLocation: newPrimaryLocation }));
-            }
+                    address: locationName || null,
+                    dateAdded: user.primaryLocation?.dateAdded || new Date().toISOString(),
+                },
+            });
         } catch (error) {
-            console.error("Failed to get current location for profile:", error);
-            alert("Could not retrieve your current location. Please ensure location services are enabled.");
+            console.error('Failed to get current location for profile:', error);
+            alert('Could not retrieve your current location. Please ensure location services are enabled.');
         }
     };
 
@@ -1290,9 +1321,9 @@ export default function Home() {
                 />
             )}
             
-            {isLoggedIn && showProfileModal && (
-                <ProfileModal 
-                    user={user} 
+            {isLoggedIn && showProfileModal && user && (
+                <ProfileModal
+                    user={user}
                     setUser={setUser}
                     onClose={() => setShowProfileModal(false)}
                     onLogout={handleLogout}
@@ -1300,6 +1331,7 @@ export default function Home() {
                     onSearchForLocation={handleSearchLocationForProfile}
                     onViewLocation={handleViewLocationOnMap}
                     onDeleteLocation={handleDeleteLocation}
+                    onUseCurrentLocation={handleGetCurrentLocationForProfile}
                 />
             )}
 

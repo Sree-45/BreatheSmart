@@ -5,18 +5,24 @@ import com.sreeshanth.backend.model.User;
 import com.sreeshanth.backend.service.AiSummaryService;
 import com.sreeshanth.backend.service.RagServiceClient;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 @RestController
 @RequestMapping("/api/ai")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:5173", "https://localhost:5173"})
 @RequiredArgsConstructor
 public class AiController {
+
+    private static final Logger log = LoggerFactory.getLogger(AiController.class);
 
     private final RagServiceClient ragServiceClient;
     private final AiSummaryService aiSummaryService;
@@ -40,17 +46,14 @@ public class AiController {
             RagDtos.RecommendResponse response = ragServiceClient.getRecommendation(user, airQualityData);
             return ResponseEntity.ok(response);
         } catch (WebClientResponseException e) {
+            log.warn("rag-service /recommend rejected request: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             return ResponseEntity.status(502).body(Map.of(
                     "error", "rag-service rejected the request",
                     "status", e.getStatusCode().value(),
                     "detail", e.getResponseBodyAsString()
             ));
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(503).body(Map.of(
-                    "error", "rag-service unreachable",
-                    "detail", e.getMessage() == null ? "" : e.getMessage()
-            ));
+            return mapDownstreamFailure("recommendations", e);
         }
     }
 
@@ -71,17 +74,14 @@ public class AiController {
             RagDtos.AgentAnalyzeResponse response = ragServiceClient.analyzeAgentic(body);
             return ResponseEntity.ok(response);
         } catch (WebClientResponseException e) {
+            log.warn("rag-service /agent/analyze rejected: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             return ResponseEntity.status(502).body(Map.of(
                     "error", "rag-service rejected the request",
                     "status", e.getStatusCode().value(),
                     "detail", e.getResponseBodyAsString()
             ));
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(503).body(Map.of(
-                    "error", "rag-service unreachable",
-                    "detail", e.getMessage() == null ? "" : e.getMessage()
-            ));
+            return mapDownstreamFailure("agent", e);
         }
     }
 
@@ -103,11 +103,42 @@ public class AiController {
             String summary = aiSummaryService.generateDailySummary(user, airQualityData);
             return ResponseEntity.ok(Map.of("summary", summary));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("daily summary failed unexpectedly", e);
             return ResponseEntity.status(500).body(Map.of(
                     "error", "Failed to generate daily summary.",
                     "detail", e.getMessage() == null ? "" : e.getMessage()
             ));
         }
+    }
+
+    private ResponseEntity<?> mapDownstreamFailure(String endpoint, Exception e) {
+        Throwable cause = unwrap(e);
+        if (cause instanceof TimeoutException || cause instanceof java.util.concurrent.TimeoutException) {
+            log.warn("rag-service /{} timed out", endpoint);
+            return ResponseEntity.status(504).body(Map.of(
+                    "error", "rag-service timed out",
+                    "detail", cause.getMessage() == null ? "" : cause.getMessage()
+            ));
+        }
+        if (cause instanceof WebClientRequestException) {
+            log.warn("rag-service /{} unreachable: {}", endpoint, cause.getMessage());
+            return ResponseEntity.status(503).body(Map.of(
+                    "error", "rag-service unreachable",
+                    "detail", cause.getMessage() == null ? "" : cause.getMessage()
+            ));
+        }
+        log.error("rag-service /{} failed", endpoint, e);
+        return ResponseEntity.status(503).body(Map.of(
+                "error", "rag-service call failed",
+                "detail", e.getMessage() == null ? "" : e.getMessage()
+        ));
+    }
+
+    private static Throwable unwrap(Throwable t) {
+        Throwable cur = t;
+        while (cur.getCause() != null && cur.getCause() != cur) {
+            cur = cur.getCause();
+        }
+        return cur;
     }
 }

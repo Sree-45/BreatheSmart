@@ -15,6 +15,15 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
 
+    # Retrieval tuning — exposed so RAGAS runs can sweep without code edits.
+    similarity_threshold: float = 1.2
+    retriever_k: int = 4
+
+    # LLM resilience.
+    llm_timeout_s: int = 30
+    llm_max_retries: int = 2
+    agent_recursion_limit: int = 8
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

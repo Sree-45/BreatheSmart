@@ -1,0 +1,16 @@
+__pycache__
+**/__pycache__
+*.pyc
+.venv
+venv
+.env
+.env.*
+chroma_db
+data/*.html
+data/*.htm
+data/*.pdf
+data/pdfs
+.pytest_cache
+.ruff_cache
+.mypy_cache
+node_modules

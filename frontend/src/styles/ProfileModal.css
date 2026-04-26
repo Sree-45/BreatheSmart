@@ -378,6 +378,47 @@
   background-color: #1d4ed8;
 }
 
+.primary-location-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.primary-location-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.primary-location-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.primary-location-coords {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.primary-location-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.primary-location-actions .action-btn {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.primary-location-actions .action-btn:hover {
+  background-color: #e5e7eb;
+}
+
 /* Logout section */
 .logout-section {
   display: flex;

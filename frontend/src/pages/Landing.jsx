@@ -206,10 +206,11 @@ export default function Landing() {
     if (token) navigate('/app', { replace: true });
   }, [navigate]);
 
-  const handleLoginSuccess = (loggedInUser) => {
-    if (loggedInUser) {
-      localStorage.setItem('user', JSON.stringify(loggedInUser));
-    }
+  const handleLoginSuccess = (loginData) => {
+    // login() returns { token, user } — store both so /app sees an authenticated session.
+    const { token, user } = loginData || {};
+    if (token) localStorage.setItem('authToken', token);
+    if (user) localStorage.setItem('user', JSON.stringify(user));
     setShowLogin(false);
     navigate('/app');
   };

@@ -23,15 +23,26 @@ def validate_medical_content(text: str) -> bool:
         logging.getLogger(__name__).error("Failed to validate medical content: %s", str(e))
         return True  # Fallback to true if validation fails
 
+MAX_REPORT_CHARS = 200_000  # ~50 pages of dense text; covers 99% of medical PDFs.
+
+
 @router.post("/ingest/report")
 def ingest_report(req: IngestReportRequest):
     if not req.report_text.strip():
         raise HTTPException(status_code=400, detail="report_text cannot be empty")
-        
-    if not validate_medical_content(req.report_text):
+
+    text = req.report_text
+    if len(text) > MAX_REPORT_CHARS:
+        logging.getLogger(__name__).info(
+            "ingest.report: truncating oversized report from %d to %d chars (user=%s)",
+            len(text), MAX_REPORT_CHARS, req.user_id,
+        )
+        text = text[:MAX_REPORT_CHARS]
+
+    if not validate_medical_content(text):
         raise HTTPException(status_code=400, detail="Document doesn't appear to be a medical report. Please upload healthcare documents, lab reports, or clinical summaries.")
-        
-    return ingest_user_report(req.user_id, req.report_text, req.filename)
+
+    return ingest_user_report(req.user_id, text, req.filename)
 
 
 @router.post("/ingest/global")

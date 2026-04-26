@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -5,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.rag.pipeline import run_recommendation
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["rag"])
 
 
@@ -42,6 +44,7 @@ class RecommendResponse(BaseModel):
     sources: List[Source]
     fallback: bool
     latency_ms: int
+    request_id: Optional[str] = None
 
 
 @router.post("/recommend", response_model=RecommendResponse)
@@ -53,5 +56,9 @@ def recommend(req: RecommendRequest) -> RecommendResponse:
             question=req.question,
         )
     except RuntimeError as e:
+        # Configuration errors (missing API key) — service unavailable.
         raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        logger.exception("recommend pipeline crashed")
+        raise HTTPException(status_code=502, detail=f"recommendation pipeline failed: {e}")
     return RecommendResponse(**result)
