@@ -9,8 +9,8 @@
   /* --- Brand & accents --- */
   --color-primary-50:  #eef2ff;
   --color-primary-100: #e0e7ff;
-  --color-primary-500: #2563eb;
-  --color-primary-600: #1d4ed8;
+  --color-primary-500: #2f6fed;
+  --color-primary-600: #1f57cf;
   --color-primary-700: #1741a6;
 
   --color-accent-50:  #faf5ff;
@@ -70,8 +70,10 @@
   --shadow-primary: 0 6px 18px rgba(37, 99, 235, 0.25);
   --shadow-accent:  0 6px 18px rgba(109, 40, 217, 0.25);
 
-  /* --- Typography --- */
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* --- Typography (brand fonts loaded in index.css) --- */
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-size-xs:   0.78rem;
   --font-size-sm:   0.85rem;
   --font-size-base: 0.95rem;
@@ -90,7 +92,7 @@
 /* ----- Base reset & global font ----- */
 #root {
   height: 100vh;
-  width: 100vw;
+  width: 100%;
   margin: 0;
   padding: 0;
 }

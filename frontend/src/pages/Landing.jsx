@@ -1,203 +1,85 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AirIcon from '@mui/icons-material/Air';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety';
-import TimelineIcon from '@mui/icons-material/Timeline';
-import VerifiedIcon from '@mui/icons-material/Verified';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import BoltIcon from '@mui/icons-material/Bolt';
-import SecurityIcon from '@mui/icons-material/Security';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
+import { useTheme } from '../hooks/useTheme';
 import '../styles/Landing.css';
 
-/* ----------------------------- helpers ----------------------------- */
-
-function useReveal(threshold = 0.15) {
+/* ----------------------------- reveal ----------------------------- */
+function useReveal(threshold = 0.16) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
-
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setVisible(true);
-      return;
-    }
+    if (typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
     const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-        }
-      },
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
       { threshold },
     );
     obs.observe(node);
     return () => obs.disconnect();
   }, [threshold]);
-
   return [ref, visible];
 }
 
-function Reveal({ children, delay = 0, className = '' }) {
+function Reveal({ children, delay = 0, className = '', as: Tag = 'div' }) {
   const [ref, visible] = useReveal();
-  return (
-    <div
-      ref={ref}
-      className={`reveal ${visible ? 'reveal-in' : ''} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
+  return React.createElement(
+    Tag,
+    { ref, className: `rv ${visible ? 'rv-in' : ''} ${className}`, style: { transitionDelay: `${delay}ms` } },
+    children,
   );
 }
 
-/* --------------------------- mock previews --------------------------- */
-
-function AqiRing({ value = 156, label = 'Unhealthy' }) {
-  // Map AQI 0..500 onto the ring (clamped at 300 for visual breathing room).
-  const pct = Math.max(0, Math.min(1, value / 300));
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const dash = pct * circumference;
-
+/* ------------------------ live reading card ------------------------ */
+function Reading() {
   return (
-    <div className="aqi-ring-wrap" aria-hidden="true">
-      <svg className="aqi-ring" viewBox="0 0 120 120">
-        <defs>
-          <linearGradient id="aqiGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#f59e0b" />
-            <stop offset="100%" stopColor="#dc2626" />
-          </linearGradient>
-        </defs>
-        <circle cx="60" cy="60" r={radius} className="aqi-ring-track" />
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          className="aqi-ring-progress"
-          stroke="url(#aqiGrad)"
-          strokeDasharray={`${dash} ${circumference}`}
-          transform="rotate(-90 60 60)"
-        />
-      </svg>
-      <div className="aqi-ring-text">
-        <strong>{value}</strong>
-        <span>{label}</span>
+    <figure className="lp-read" aria-label="Sample air-quality reading, Hyderabad">
+      <div className="lp-read-top">
+        <span className="lp-read-loc">Hyderabad · IN</span>
+        <span className="lp-read-live"><i aria-hidden="true" />LIVE</span>
       </div>
-    </div>
+      <div className="lp-read-num">
+        <span className="lp-read-aqi">156</span>
+        <span className="lp-read-cat">Unhealthy<br /><em>PM2.5 dominant</em></span>
+      </div>
+      <div className="lp-read-band" aria-hidden="true">
+        <span className="lp-read-marker" style={{ left: '62%' }} />
+      </div>
+      <dl className="lp-read-rows">
+        <div><dt>PM2.5</dt><dd>78</dd></div>
+        <div><dt>PM10</dt><dd>64</dd></div>
+        <div><dt>O₃</dt><dd>34</dd></div>
+      </dl>
+      <figcaption className="lp-read-src">SOURCE · who_air_quality_guidelines.md</figcaption>
+    </figure>
   );
 }
 
-function HeroPreviewCard() {
-  return (
-    <div className="hero-preview" role="img" aria-label="Sample BreatheSmart air quality card">
-      <div className="hero-preview-glow" aria-hidden="true" />
-      <div className="hero-preview-card">
-        <div className="hero-preview-head">
-          <span className="hero-preview-dot" />
-          <span className="hero-preview-loc">Live · Hyderabad</span>
-          <span className="hero-preview-time">Updated 2 min ago</span>
-        </div>
-        <div className="hero-preview-body">
-          <AqiRing value={156} label="Unhealthy" />
-          <ul className="hero-preview-pollutants">
-            <li><span className="pollutant-name">PM2.5</span><span className="pollutant-bar"><span style={{ width: '78%' }} className="pollutant-bar-fill bad" /></span><span className="pollutant-val">78</span></li>
-            <li><span className="pollutant-name">PM10</span><span className="pollutant-bar"><span style={{ width: '64%' }} className="pollutant-bar-fill warn" /></span><span className="pollutant-val">64</span></li>
-            <li><span className="pollutant-name">NO₂</span><span className="pollutant-bar"><span style={{ width: '22%' }} className="pollutant-bar-fill ok" /></span><span className="pollutant-val">22</span></li>
-            <li><span className="pollutant-name">O₃</span><span className="pollutant-bar"><span style={{ width: '34%' }} className="pollutant-bar-fill ok" /></span><span className="pollutant-val">34</span></li>
-          </ul>
-        </div>
-        <div className="hero-preview-tip">
-          <BoltIcon fontSize="small" />
-          <span>Asthma · keep your inhaler accessible and avoid outdoor exertion this afternoon.</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ------------------------------ data ------------------------------ */
+const STEPS = [
+  { n: '01', t: 'Tell us about you', d: 'Add your conditions and optionally upload a recent report. The text is extracted and indexed privately — scoped to your account alone.' },
+  { n: '02', t: 'We read the air', d: 'Live AQI for your location, the last 24 hours, and an hourly forecast — all on one interactive map.' },
+  { n: '03', t: 'Get verifiable advice', d: 'Guidance tuned to your conditions, shown with the exact documents it was built on, plus an agent that reveals its reasoning.' },
+];
 
-function SourcesMockup() {
-  return (
-    <div className="mock-sources" aria-hidden="true">
-      <div className="mock-sources-toggle">
-        <span><LibraryBooksIcon fontSize="small" /> Sources used (3)</span>
-        <span className="mock-sources-latency">· 1.4s</span>
-      </div>
-      <div className="mock-sources-list">
-        <div className="mock-source">
-          <div className="mock-source-head">
-            <span className="mock-source-title">who_air_quality_guidelines.md</span>
-            <span className="mock-source-scope global">Global guideline</span>
-            <span className="mock-source-score">match 84%</span>
-          </div>
-          <p>PM2.5 24-hour mean of 15 µg/m³ marks the WHO 2021 limit. Above 35 µg/m³ reduce outdoor exertion…</p>
-        </div>
-        <div className="mock-source">
-          <div className="mock-source-head">
-            <span className="mock-source-title">asthma_air_quality.md</span>
-            <span className="mock-source-scope global">Global guideline</span>
-            <span className="mock-source-score">match 79%</span>
-          </div>
-          <p>Asthmatics should carry rescue inhalers when AQI &gt; 100 and reschedule strenuous outdoor exercise…</p>
-        </div>
-        <div className="mock-source">
-          <div className="mock-source-head">
-            <span className="mock-source-title">your_report_2025-09.pdf</span>
-            <span className="mock-source-scope user">Your uploaded report</span>
-            <span className="mock-source-score">match 71%</span>
-          </div>
-          <p>Spirometry FEV1 92% predicted. Mild persistent asthma. Daily ICS controller, salbutamol PRN…</p>
-        </div>
-      </div>
-    </div>
-  );
-}
+const FEATURES = [
+  { t: 'Source-cited recommendations', d: 'Every answer cites the specific WHO, EPA and clinical passages used to write it. No black-box output.' },
+  { t: 'Agentic analysis', d: 'A LangGraph agent picks its own tools, pulls live AQI, retrieves guidelines, and shows each step.' },
+  { t: 'History & forecast', d: '24 hours of trend and an hourly outlook — so you see a spike coming, not just the current number.' },
+  { t: 'Personal health profile', d: 'Conditions, vitals and blood type all factor into the guidance you receive.' },
+  { t: 'Privacy by scope', d: 'Uploaded reports become a private namespace only your account can ever retrieve from.' },
+  { t: 'Live air-quality map', d: 'Real-time AQI on an interactive map, with the nearest hospitals when the air turns hazardous.' },
+];
 
-function AgentMockup() {
-  return (
-    <div className="mock-agent" aria-hidden="true">
-      <div className="mock-agent-header">
-        <AutoAwesomeIcon fontSize="small" />
-        <span>Agent · LangGraph</span>
-      </div>
-      <ol className="mock-agent-steps">
-        <li><span className="mock-agent-step-num">1</span><div><strong>fetched live AQI</strong><small>tool · fetch_aqi_for_city("Hyderabad")</small></div></li>
-        <li><span className="mock-agent-step-num">2</span><div><strong>ran RAG retrieval</strong><small>tool · get_health_recommendation</small></div></li>
-        <li><span className="mock-agent-step-num">3</span><div><strong>answered</strong><small>grounded in 3 retrieved chunks</small></div></li>
-      </ol>
-    </div>
-  );
-}
-
-function ProfilePreview() {
-  return (
-    <div className="mock-profile" aria-hidden="true">
-      <div className="mock-profile-row">
-        <span className="mock-profile-label">Conditions</span>
-        <span className="mock-profile-pill">Asthma</span>
-        <span className="mock-profile-pill">Hay fever</span>
-      </div>
-      <div className="mock-profile-row">
-        <span className="mock-profile-label">Reports</span>
-        <span className="mock-profile-pill subtle">spirometry_2025.pdf</span>
-      </div>
-      <div className="mock-profile-row">
-        <span className="mock-profile-label">Personalisation</span>
-        <span className="mock-profile-pill ok"><VerifiedIcon fontSize="inherit" /> 4 chunks indexed</span>
-      </div>
-    </div>
-  );
-}
+const BANDS = ['GOOD', 'MODERATE', 'UNHEALTHY (SG)', 'UNHEALTHY', 'VERY UNHEALTHY', 'HAZARDOUS'];
+const SOURCES = ['WHO', 'US EPA', 'AHA', 'NHLBI', 'American Lung Assoc.'];
 
 /* ------------------------------ page ------------------------------ */
-
 export default function Landing() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
@@ -207,7 +89,6 @@ export default function Landing() {
   }, [navigate]);
 
   const handleLoginSuccess = (loginData) => {
-    // login() returns { token, user } — store both so /app sees an authenticated session.
     const { token, user } = loginData || {};
     if (token) localStorage.setItem('authToken', token);
     if (user) localStorage.setItem('user', JSON.stringify(user));
@@ -217,259 +98,118 @@ export default function Landing() {
 
   const openSignup = () => { setShowLogin(false); setShowSignup(true); };
   const openLogin = () => { setShowSignup(false); setShowLogin(true); };
+  const enterApp = () => navigate('/app');
 
   return (
-    <div className="landing">
-      <div className="landing-bg" aria-hidden="true" />
+    <div className="lp" id="top">
+      <div className="lp-grain" aria-hidden="true" />
 
-      <header className="landing-nav">
-        <a className="landing-brand" href="#top">
-          <AirIcon className="landing-brand-icon" />
-          <span>BreatheSmart</span>
-        </a>
-        <nav className="landing-nav-links" aria-label="Sections">
-          <a href="#features">Features</a>
-          <a href="#how">How it works</a>
-          <a href="#sources">Trust</a>
-        </nav>
-        <div className="landing-nav-actions">
-          <button type="button" className="landing-nav-btn ghost" onClick={openLogin}>
-            Log in
+      <header className="lp-nav">
+        <a className="lp-brand" href="#top">Breathe<span>Smart</span><i className="lp-brand-dot" aria-hidden="true" /></a>
+        <div className="lp-nav-r">
+          <button type="button" className="lp-toggle" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
+            {theme === 'dark' ? 'LIGHT' : 'DARK'}
           </button>
-          <button type="button" className="landing-nav-btn primary" onClick={() => setShowSignup(true)}>
-            Sign up
-          </button>
+          <button type="button" className="lp-link" onClick={openLogin}>Log in</button>
+          <button type="button" className="lp-btn" onClick={enterApp}>Open app <span aria-hidden="true">→</span></button>
         </div>
       </header>
 
-      <main className="landing-main" id="top">
-        {/* ============== HERO ============== */}
-        <section className="landing-hero">
-          <div className="landing-hero-copy">
-            <Reveal>
-              <p className="landing-eyebrow">
-                <span className="landing-eyebrow-dot" /> Personalised air-quality intelligence
-              </p>
+      <main className="lp-main">
+        {/* ===== HERO ===== */}
+        <section className="lp-hero">
+          <div className="lp-hero-copy">
+            <Reveal as="p" className="lp-eyebrow">Personalised air-quality intelligence — est. 2026</Reveal>
+            <Reveal as="h1" className="lp-title" delay={70}>
+              Know the air.<br />
+              <span className="lp-title-em">Trust</span> the advice.
             </Reveal>
-            <Reveal delay={80}>
-              <h1 className="landing-title">
-                Air quality advice you can <span className="accent">verify</span>.
-              </h1>
+            <Reveal as="p" className="lp-lede" delay={150}>
+              Live AQI paired with retrieval-grounded health guidance. Every recommendation is
+              tuned to your conditions — and shows the source document it was built on.
             </Reveal>
-            <Reveal delay={150}>
-              <p className="landing-subtitle">
-                BreatheSmart pairs live AQI with retrieval-grounded health guidance.
-                Every recommendation is tailored to your conditions and shows the source documents
-                it was built on.
-              </p>
-            </Reveal>
-            <Reveal delay={220}>
-              <div className="landing-cta-row">
-                <button type="button" className="landing-cta primary" onClick={() => setShowSignup(true)}>
-                  Get started
-                  <ArrowForwardIcon fontSize="small" />
-                </button>
-                <button type="button" className="landing-cta secondary" onClick={openLogin}>
-                  I already have an account
-                </button>
-              </div>
-            </Reveal>
-            <Reveal delay={300}>
-              <ul className="landing-hero-bullets">
-                <li><VerifiedIcon fontSize="inherit" /> Grounded in WHO, EPA &amp; AHA guidelines</li>
-                <li><SecurityIcon fontSize="inherit" /> Your reports stay scoped to your account</li>
-                <li><BoltIcon fontSize="inherit" /> Real-time AQI &amp; 24-hour forecasts</li>
-              </ul>
+            <Reveal className="lp-actions" delay={220}>
+              <button type="button" className="lp-btn lg" onClick={enterApp}>Open the app <span aria-hidden="true">→</span></button>
+              <button type="button" className="lp-ghost lg" onClick={openLogin}>I have an account</button>
             </Reveal>
           </div>
-
-          <Reveal className="landing-hero-visual" delay={120}>
-            <HeroPreviewCard />
-          </Reveal>
+          <Reveal className="lp-hero-fig" delay={120}><Reading /></Reveal>
         </section>
 
-        {/* ============== STATS STRIP ============== */}
-        <Reveal>
-          <section className="landing-stats" aria-label="At a glance">
-            <div className="landing-stat">
-              <strong>99%</strong>
-              <span>of people breathe air that exceeds WHO PM2.5 limits</span>
-            </div>
-            <div className="landing-stat">
-              <strong>2.4×</strong>
-              <span>higher asthma ED visits on high-pollution days</span>
-            </div>
-            <div className="landing-stat">
-              <strong>0</strong>
-              <span>recommendations without a verifiable source</span>
-            </div>
-          </section>
-        </Reveal>
-
-        {/* ============== BENTO FEATURES ============== */}
-        <section className="landing-section" id="features">
-          <Reveal>
-            <header className="landing-section-head">
-              <p className="landing-section-eyebrow">What you get</p>
-              <h2>Built for people who actually need clean air.</h2>
-              <p className="landing-section-sub">
-                Not a generic AQI app — a coach that knows your conditions and explains its reasoning.
-              </p>
-            </header>
-          </Reveal>
-
-          <div className="bento">
-            <Reveal className="bento-tile bento-tile--lg">
-              <div className="bento-tile-text">
-                <div className="bento-tile-icon"><LibraryBooksIcon /></div>
-                <h3>Recommendations grounded in real medical guidelines.</h3>
-                <p>
-                  Every answer cites the specific WHO, EPA, asthma and cardiovascular reference chunks
-                  used to produce it. No more black-box AI.
-                </p>
-              </div>
-              <SourcesMockup />
-            </Reveal>
-
-            <Reveal className="bento-tile bento-tile--md" delay={80}>
-              <div className="bento-tile-icon agent"><AutoAwesomeIcon /></div>
-              <h3>Agentic analysis</h3>
-              <p>A LangGraph agent picks its own tools and shows its reasoning.</p>
-              <AgentMockup />
-            </Reveal>
-
-            <Reveal className="bento-tile bento-tile--sm" delay={120}>
-              <div className="bento-tile-icon"><TimelineIcon /></div>
-              <h3>24-hour history &amp; forecast</h3>
-              <p>Spot trends before they spike — not just the current number.</p>
-            </Reveal>
-
-            <Reveal className="bento-tile bento-tile--sm" delay={160}>
-              <div className="bento-tile-icon"><HealthAndSafetyIcon /></div>
-              <h3>Personal health profile</h3>
-              <p>Conditions, vitals, blood type — all factored into your guidance.</p>
-            </Reveal>
-
-            <Reveal className="bento-tile bento-tile--md" delay={200}>
-              <div className="bento-tile-icon"><VisibilityOutlinedIcon /></div>
-              <h3>Privacy by scope</h3>
-              <p>
-                Uploaded reports become a private vector namespace only your account can retrieve from.
-              </p>
-              <ProfilePreview />
-            </Reveal>
+        {/* ===== TICKER ===== */}
+        <div className="lp-ticker" aria-hidden="true">
+          <div className="lp-ticker-tape">
+            {[...BANDS, ...BANDS, ...BANDS].map((b, i) => (
+              <span key={i} className="lp-tick"><i className={`d d${i % BANDS.length}`} />{b}</span>
+            ))}
           </div>
-        </section>
+        </div>
 
-        {/* ============== TRUST / SOURCES ============== */}
-        <Reveal>
-          <section className="landing-trust" id="sources">
-            <div className="landing-trust-copy">
-              <p className="landing-section-eyebrow">Where guidance comes from</p>
-              <h2>Retrieval-grounded, not auto-generated.</h2>
-              <p>
-                Recommendations are retrieved from a curated reference corpus before the model writes a word.
-                You see the sources that drove every answer.
-              </p>
-            </div>
-            <div className="landing-trust-logos" aria-label="Reference sources">
-              <span>WHO Global AQ Guidelines</span>
-              <span>US EPA AQI</span>
-              <span>American Heart Association</span>
-              <span>NHLBI Asthma</span>
-              <span>American Lung Association</span>
-            </div>
-          </section>
-        </Reveal>
-
-        {/* ============== HOW IT WORKS ============== */}
-        <section className="landing-section" id="how">
-          <Reveal>
-            <header className="landing-section-head">
-              <p className="landing-section-eyebrow">How it works</p>
-              <h2>From sign-up to verifiable advice in three steps.</h2>
-            </header>
-          </Reveal>
-
-          <ol className="landing-steps">
-            <Reveal>
-              <li>
-                <span className="landing-step-num">1</span>
-                <div>
-                  <h4>Tell us about you</h4>
-                  <p>Add a health profile and optionally upload a recent medical report. Text is extracted and indexed privately.</p>
+        {/* ===== HOW ===== */}
+        <section className="lp-sec" aria-labelledby="how">
+          <p className="lp-kick">／ how it works</p>
+          <h2 id="how" className="lp-h2">Three steps to advice you can verify.</h2>
+          <ol className="lp-steps">
+            {STEPS.map((s, i) => (
+              <Reveal as="li" key={s.n} className="lp-step" delay={i * 80}>
+                <span className="lp-step-n">{s.n}</span>
+                <div className="lp-step-b">
+                  <h3>{s.t}</h3>
+                  <p>{s.d}</p>
                 </div>
-              </li>
-            </Reveal>
-            <Reveal delay={80}>
-              <li>
-                <span className="landing-step-num">2</span>
-                <div>
-                  <h4>We pull live air quality</h4>
-                  <p>Real-time AQI for your saved location, 24-hour history, and a hourly forecast for the next day.</p>
-                </div>
-              </li>
-            </Reveal>
-            <Reveal delay={160}>
-              <li>
-                <span className="landing-step-num">3</span>
-                <div>
-                  <h4>Get grounded recommendations</h4>
-                  <p>Personalised guidance with the source documents used to generate it, plus an agentic analysis option.</p>
-                </div>
-              </li>
-            </Reveal>
+              </Reveal>
+            ))}
           </ol>
         </section>
 
-        {/* ============== FINAL CTA ============== */}
-        <Reveal>
-          <section className="landing-cta-card" aria-label="Final CTA">
-            <h2>Start breathing smarter today.</h2>
-            <p>Free during the dev preview · no credit card · health data stays on your account.</p>
-            <div className="landing-cta-row centered">
-              <button type="button" className="landing-cta primary" onClick={() => setShowSignup(true)}>
-                Create your account <ArrowForwardIcon fontSize="small" />
-              </button>
-              <button type="button" className="landing-cta secondary" onClick={openLogin}>
-                Log in instead
-              </button>
-            </div>
-          </section>
-        </Reveal>
+        {/* ===== FEATURES ===== */}
+        <section className="lp-sec" aria-labelledby="feat">
+          <p className="lp-kick">／ what you get</p>
+          <h2 id="feat" className="lp-h2">Built for people who actually need clean air.</h2>
+          <div className="lp-grid">
+            {FEATURES.map((f, i) => (
+              <Reveal as="article" key={f.t} className="lp-card" delay={(i % 3) * 60}>
+                <span className="lp-card-i">{String(i + 1).padStart(2, '0')}</span>
+                <h3>{f.t}</h3>
+                <p>{f.d}</p>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        {/* ===== TRUST ===== */}
+        <section className="lp-trust">
+          <p className="lp-kick center">／ grounded in</p>
+          <div className="lp-srcs">
+            {SOURCES.map((s) => <span key={s}>{s}</span>)}
+          </div>
+        </section>
+
+        {/* ===== FINAL CTA ===== */}
+        <section className="lp-final">
+          <div className="lp-final-band" aria-hidden="true" />
+          <Reveal as="h2" className="lp-final-t">
+            Start breathing<br /><span className="lp-title-em">smarter</span> today.
+          </Reveal>
+          <Reveal className="lp-actions center" delay={120}>
+            <button type="button" className="lp-btn lg" onClick={enterApp}>Open the app <span aria-hidden="true">→</span></button>
+            <button type="button" className="lp-ghost lg" onClick={openSignup}>Create an account</button>
+          </Reveal>
+          <p className="lp-fineprint">Free during the dev preview · no credit card · your health data stays on your account.</p>
+        </section>
       </main>
 
-      <footer className="landing-footer">
-        <div className="landing-footer-row">
-          <div className="landing-brand">
-            <AirIcon className="landing-brand-icon" />
-            <span>BreatheSmart</span>
-          </div>
-          <span className="landing-footer-tagline">Air-quality intelligence, with sources.</span>
-        </div>
-        <div className="landing-footer-row landing-footer-tech" aria-label="Tech stack">
-          <span className="landing-footer-stack-label">Built with</span>
-          {[
-            'React', 'Spring Boot', 'FastAPI', 'LangChain', 'LangGraph',
-            'ChromaDB', 'Spring AI', 'MongoDB', 'Apache Tika',
-          ].map((t) => (
-            <span key={t} className="landing-tech-pill">{t}</span>
-          ))}
-        </div>
+      <footer className="lp-footer">
+        <span className="lp-brand sm">Breathe<span>Smart</span><i className="lp-brand-dot" aria-hidden="true" /></span>
+        <span className="lp-foot-tag">Air-quality intelligence, with sources.</span>
+        <span className="lp-foot-meta">2026 — built with React · Spring · FastAPI · Groq</span>
       </footer>
 
       {showLogin && (
-        <LoginModal
-          onClose={() => setShowLogin(false)}
-          onLoginSuccess={handleLoginSuccess}
-          onSwitchToSignup={openSignup}
-        />
+        <LoginModal onClose={() => setShowLogin(false)} onLoginSuccess={handleLoginSuccess} onSwitchToSignup={openSignup} />
       )}
       {showSignup && (
-        <SignupModal
-          onClose={() => setShowSignup(false)}
-          onSwitchToLogin={openLogin}
-        />
+        <SignupModal onClose={() => setShowSignup(false)} onSwitchToLogin={openLogin} />
       )}
     </div>
   );

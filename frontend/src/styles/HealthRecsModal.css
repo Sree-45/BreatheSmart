@@ -4,6 +4,8 @@
 .health-recs-modal {
     max-width: 600px;
     width: 90%;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
 }
 
 .health-recs-modal .modal-body {
@@ -31,7 +33,7 @@
 
 .auth-prompt-container h3 {
     font-size: 1.5rem;
-    color: var(--color-primary-700);
+    color: var(--color-text);
     margin-bottom: var(--space-3);
 }
 
@@ -102,11 +104,14 @@
     background: transparent;
     padding: var(--space-2) var(--space-5);
     border-radius: var(--radius-full);
-    font-size: 0.92rem;
-    font-weight: 600;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    letter-spacing: 0.02em;
     color: var(--color-text-secondary);
     cursor: pointer;
     transition: all var(--transition-fast);
+    min-height: 36px;
 }
 
 .health-recs-tab:hover {
@@ -188,12 +193,12 @@
 
 .health-recs-section.primary {
     border-color: var(--color-error-border);
-    background: linear-gradient(180deg, #fff5f5 0%, var(--color-bg) 100%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-error-bg) 60%, var(--color-bg)) 0%, var(--color-bg) 100%);
 }
 
 .health-recs-section.secondary {
     border-color: var(--color-primary-100);
-    background: linear-gradient(180deg, #f5f7ff 0%, var(--color-bg) 100%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary-50) 70%, var(--color-bg)) 0%, var(--color-bg) 100%);
 }
 
 .health-recs-section-header {
@@ -264,8 +269,9 @@
 }
 
 .sources-panel-latency {
+    font-family: var(--font-mono);
     font-weight: 400;
-    font-size: 0.82rem;
+    font-size: var(--font-size-xs);
     color: var(--color-text-tertiary);
 }
 
@@ -301,6 +307,7 @@
 }
 
 .source-card-scope {
+    font-family: var(--font-mono);
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -311,7 +318,7 @@
 
 .source-card-scope.global {
     background: var(--color-primary-50);
-    color: var(--color-accent-600);
+    color: var(--color-primary-600);
 }
 
 .source-card-scope.user {
@@ -321,7 +328,8 @@
 
 .source-card-score {
     margin-left: auto;
-    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     font-variant-numeric: tabular-nums;
 }
@@ -379,12 +387,15 @@
 }
 
 .agent-panel-field input {
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
     border: 1px solid var(--color-border-strong);
     border-radius: var(--radius-md);
-    font-size: 0.92rem;
-    transition: border-color var(--transition-fast);
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    background: var(--color-bg);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
     font-family: inherit;
+    min-height: 44px;
 }
 
 .agent-panel-field input:focus {
@@ -436,14 +447,15 @@
 
 .agent-trace h5 {
     margin: 0 0 var(--space-2);
-    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
     color: var(--color-accent-500);
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .agent-trace ol {
@@ -463,11 +475,12 @@
 
 .agent-answer h5 {
     margin: 0 0 var(--space-1);
-    font-size: 0.82rem;
-    color: var(--color-text);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .agent-answer p {
@@ -475,4 +488,57 @@
     color: var(--color-text);
     line-height: 1.55;
     white-space: pre-wrap;
+}
+
+/* ==========================================================================
+   Responsive — comfortable tabs, stacked actions, no overflow on phones.
+   ========================================================================== */
+@media (max-width: 560px) {
+    .health-recs-modal .modal-body {
+        padding: var(--space-2) var(--space-4) var(--space-4);
+        min-height: 240px;
+    }
+
+    /* Pill tabs: allow wrapping (baseline) and full pill width if they do. */
+    .health-recs-tabs {
+        flex-wrap: wrap;
+        width: 100%;
+        justify-content: center;
+    }
+    .health-recs-tab {
+        padding: var(--space-2) var(--space-4);
+        min-height: 40px;
+    }
+
+    /* Auth prompt buttons stack full-width. */
+    .auth-prompt-actions {
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+    .auth-prompt-btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+    }
+
+    /* Source card head wraps; score drops below instead of squeezing. */
+    .source-card-score {
+        margin-left: 0;
+    }
+    .source-card-title {
+        flex: 1 1 100%;
+    }
+
+    /* Agent form: full-width run button, wrapping header. */
+    .agent-panel-header {
+        flex-wrap: wrap;
+    }
+    .agent-panel-run-btn {
+        align-self: stretch;
+        text-align: center;
+        min-height: 44px;
+    }
+    .agent-panel-field input {
+        font-size: 16px; /* avoids iOS zoom-on-focus */
+    }
 }

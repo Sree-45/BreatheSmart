@@ -1,47 +1,72 @@
 .time-section {
-  margin-top: 24px;
-  margin-bottom: 16px;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 .time-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
   position: relative;
 }
 .time-title {
-  font-size: 1.12rem;
+  font-size: var(--font-size-md);
   font-weight: 700;
-  color: #1741a6;
-  letter-spacing: 0.01em;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .time-icon {
-  color: #2563eb;
+  color: var(--color-primary-500);
   font-size: 1.3rem !important;
 }
 .chart-container {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.06);
-  margin-bottom: 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-3);
   position: relative;
 }
 .chart-expand-btn {
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--color-text-tertiary);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-  transition: background 0.2s;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .chart-expand-btn:hover {
-  background: #e3eaff;
+  background: var(--color-bg-subtle);
+  color: var(--color-primary-500);
+}
+
+/* Charts must never push the panel wider than its column. */
+.chart-container {
+  min-width: 0;
+  overflow: hidden;
+}
+.chart-container canvas {
+  max-width: 100% !important;
+}
+
+/* Phones: tighter chart padding and a constrained inline-chart height so the
+   canvas stays legible without dominating the scroll view. */
+@media (max-width: 560px) {
+  .time-section { margin-top: var(--space-5); }
+  .time-title { font-size: var(--font-size-base); }
+
+  .chart-container {
+    padding: var(--space-3);
+  }
+  .chart-container canvas {
+    max-height: 220px;
+  }
 }

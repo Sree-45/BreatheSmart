@@ -103,7 +103,7 @@
 }
 
 .map-selection-bar button:hover {
-  background-color: #6b7280;
+  background-color: var(--color-text-secondary);
 }
 
 .map-element {
@@ -150,9 +150,9 @@
   z-index: 20;
   width: 48px;
   height: 48px;
-  background-color: #2563eb; /* Default to blue background */
+  background-color: var(--color-primary-500); /* Default to blue background */
   color: #fff; /* Default to white icon */
-  border: 1px solid #1d4ed8; /* Darker blue border */
+  border: 1px solid var(--color-primary-600); /* Darker blue border */
   border-radius: 50%;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
   cursor: pointer;
@@ -164,8 +164,8 @@
 
 .panel-toggle-btn:hover {
   background-color: #fff; /* White background on hover */
-  color: #2563eb; /* Blue icon on hover */
-  border: 1px solid #2563eb;
+  color: var(--color-primary-500); /* Blue icon on hover */
+  border: 1px solid var(--color-primary-500);
   transform: translateX(-50%) scale(1.05); /* Adjust hover transform */
 }
 
@@ -173,139 +173,104 @@
 .panel-toggle-btn.open {
   left: 20px; /* Position on the left side of the screen */
   transform: translateX(0); /* Reset transform */
-  background-color: #2563eb;
+  background-color: var(--color-primary-500);
   color: #fff;
-  border: 1px solid #1d4ed8;
+  border: 1px solid var(--color-primary-600);
 }
 
 .panel-toggle-btn.open:hover {
   background-color: #fff; /* White background on hover */
-  color: #2563eb; /* Blue icon on hover */
-  border: 1px solid #2563eb;
+  color: var(--color-primary-500); /* Blue icon on hover */
+  border: 1px solid var(--color-primary-500);
   transform: scale(1.05); /* Keep hover effect */
 }
 
-/* NEW styles for the emergency button */
-.emergency-btn {
+/* ==========================================================================
+   Brand badge + action dock — the in-app logo and the consolidated quick
+   actions that replaced the scattered floating buttons. Both float over the
+   map (top-left / top-right) and theme automatically via design tokens.
+   ========================================================================== */
+
+.map-brand {
   position: absolute;
-  bottom: 200px; /* Positioned above the health recs button */
-  left: 33%;
-  transform: translateX(-50%);
-  z-index: 20;
-  width: 48px;
-  height: 48px;
-  background-color: #ef4444; /* A different red */
-  color: #fff;
-  border: 1px solid #dc2626; /* Darker red border */
-  border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  cursor: pointer;
+  top: 16px;
+  left: 16px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 15px 7px 8px;
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  user-select: none;
+  pointer-events: none;
+}
+
+.map-brand-mark {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.map-brand-mark img { width: 100%; height: 100%; display: block; }
+
+.map-brand-name {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.map-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.map-toolbar button {
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
 }
-
-.emergency-btn:hover {
-  background-color: #fff;
+.map-toolbar button svg { font-size: 1.3rem; }
+.map-toolbar button:hover {
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+}
+.map-toolbar button:active { transform: scale(0.92); }
+.map-toolbar button.danger:hover {
+  background: rgba(239, 68, 68, 0.12);
   color: #ef4444;
-  border: 1px solid #ef4444;
-  transform: translateX(-50%) scale(1.05);
 }
 
-.emergency-btn.open {
-  left: 20px;
-  transform: translateX(0);
-}
-
-.emergency-btn.open:hover {
-  background-color: #fff;
-  color: #ef4444;
-  border: 1px solid #ef4444;
-  transform: scale(1.05);
-}
-
-
-/* NEW styles for the health recommendations button */
-.health-recs-btn {
-  position: absolute;
-  bottom: 140px; /* Positioned above the profile button */
-  left: 33%;
-  transform: translateX(-50%);
-  z-index: 20;
-  width: 48px;
-  height: 48px;
-  background-color: #dc2626; /* Red background */
-  color: #fff;
-  border: 1px solid #b91c1c; /* Darker red border */
-  border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.health-recs-btn:hover {
-  background-color: #fff;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  transform: translateX(-50%) scale(1.05);
-}
-
-.health-recs-btn.open {
-  left: 20px;
-  transform: translateX(0);
-}
-
-.health-recs-btn.open:hover {
-  background-color: #fff;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  transform: scale(1.05);
-}
-
-
-/* NEW styles for the profile button */
-.profile-btn {
-  position: absolute;
-  bottom: 80px; /* Positioned above the toggle button */
-  left: 33%;
-  transform: translateX(-50%);
-  z-index: 20;
-  width: 48px;
-  height: 48px;
-  background-color: #2563eb; /* Default to blue background */
-  color: #fff; /* Default to white icon */
-  border: 1px solid #1d4ed8; /* Darker blue border */
-  border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.profile-btn:hover {
-  background-color: #fff; /* White background on hover */
-  color: #2563eb; /* Blue icon on hover */
-  border: 1px solid #2563eb;
-  transform: translateX(-50%) scale(1.05);
-}
-
-.profile-btn.open {
-  left: 20px;
-  transform: translateX(0);
-}
-
-.profile-btn.open:hover {
-  background-color: #fff;
-  color: #2563eb;
-  border: 1px solid #2563eb;
-  transform: scale(1.05);
-}
+/* (Emergency / health-recs / profile floating buttons removed — these actions
+   now live in the .map-toolbar dock above and the mobile bottom nav.) */
 
 
 /* Fixed search section - keeping it fixed and styled properly */
@@ -325,24 +290,23 @@
 .search-bar {
   display: flex;
   align-items: center;
-  background: #f3f6fa;
-  border-radius: 32px;
-  padding: 6px 14px;
+  background: var(--color-bg-muted);
+  border-radius: var(--radius-full);
+  padding: 2px 6px 2px 14px;
   margin-bottom: 16px;
-  box-shadow: 0 1px 4px rgba(37,99,235,0.04);
-  border: 1.5px solid #e0e7ef;
-  transition: box-shadow 0.2s, border 0.2s;
+  border: 1px solid var(--color-border);
+  transition: box-shadow 0.2s, border-color 0.2s;
 }
 
 .search-bar:focus-within {
-  box-shadow: 0 2px 8px rgba(37,99,235,0.10);
-  border: 1.5px solid #2563eb;
+  box-shadow: 0 0 0 3px var(--color-primary-50);
+  border-color: var(--color-primary-500);
 }
 
 .search-icon {
-  color: #2563eb;
+  color: var(--color-text-tertiary);
   margin-right: 8px;
-  font-size: 1.5rem !important;
+  font-size: 1.2rem !important;
 }
 
 .search-input {
@@ -350,24 +314,25 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 1rem;
-  color: #222;
+  font-size: 0.95rem;
+  color: var(--color-text);
   padding: 6px 0;
 }
 
 .locate-btn {
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--color-primary-500);
   cursor: pointer;
-  margin-left: 8px;
+  margin-left: 4px;
   border-radius: 50%;
-  padding: 6px;
+  padding: 5px;
   transition: background 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.locate-btn svg { font-size: 1.2rem; }
 
 .locate-btn:hover {
   background: #e3eaff;
@@ -417,7 +382,7 @@
 
 .autocomplete-item:hover {
   background-color: #eef2ff;
-  color: #1d4ed8;
+  color: var(--color-primary-600);
 }
 
 .autocomplete-item .location-icon {
@@ -425,7 +390,7 @@
 }
 
 .autocomplete-item:hover .location-icon {
-  color: #2563eb;
+  color: var(--color-primary-500);
 }
 
 .autocomplete-item-text .main-text {
@@ -434,12 +399,12 @@
 }
 
 .autocomplete-item:hover .autocomplete-item-text .main-text {
-  color: #1d4ed8;
+  color: var(--color-primary-600);
 }
 
 .autocomplete-item-text .secondary-text {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 /* Scrollable content with hardware acceleration for smooth scrolling */
@@ -479,7 +444,7 @@
 .aqi-header {
   margin: 10px 0 20px 0;
   position: relative; /* Changed from sticky to relative */
-  background: white;
+  background: var(--color-bg);
   padding: 20px 0; /* Padding to create visual space */
   border-bottom: 1px solid rgba(0,0,0,0.05);
   z-index: 2;
@@ -520,24 +485,25 @@
 .aqi-header {
   margin: 10px 0 20px 0;
   position: relative; /* Changed from sticky to relative */
-  background: white;
+  background: var(--color-bg);
   padding: 20px 0; /* Padding to create visual space */
   border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
 /* AQI place info style fix */
 .aqi-place {
+  font-family: var(--font-sans);
   font-size: 1.35rem;
   font-weight: 700;
-  color: #2563eb;
+  color: var(--color-text);
   margin: 10px 0 0 0;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
 }
 
 .aqi-coords {
   font-size: 0.78rem;
   margin-top: 4px;
-  color: #555;
+  color: var(--color-text-secondary);
   letter-spacing: 0.03em;
 }
 
@@ -580,25 +546,25 @@
 
 .aqi-dominant {
   margin: 0;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 0.95rem;
 }
 
 .aqi-meta {
   font-size: 0.95rem;
-  color: #555;
+  color: var(--color-text-secondary);
   margin: 10px 0 0 2px;
   line-height: 1.6;
 }
 
 .aqi-meta-label {
   font-weight: 600;
-  color: #2563eb;
+  color: var(--color-primary-500);
   margin-right: 4px;
 }
 
 .aqi-source-link {
-  color: #2563eb;
+  color: var(--color-primary-500);
   margin-left: 6px;
   text-decoration: underline;
   font-size: 0.97em;
@@ -615,7 +581,7 @@
 
 .aqi-index-title {
   font-size: 1.05rem;
-  color: #2563eb;
+  color: var(--color-primary-500);
   font-weight: 600;
   margin-bottom: 2px;
 }
@@ -635,7 +601,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--color-bg);
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
@@ -655,20 +621,22 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #eaeaea;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
+  font-family: var(--font-sans);
   font-size: 1.3rem;
-  font-weight: 600;
-  color: #1741a6;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
   margin: 0;
 }
 
 .modal-close-btn {
   background: none;
   border: none;
-  color: #555;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 5px;
   border-radius: 50%;
@@ -679,8 +647,8 @@
 }
 
 .modal-close-btn:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
 }
 
 .modal-body {
@@ -690,12 +658,12 @@
 .modal-concentration {
   font-size: 1.2rem;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--color-text);
 }
 
 .modal-label {
   font-weight: 600;
-  color: #2563eb;
+  color: var(--color-primary-500);
 }
 
 .modal-section {
@@ -704,7 +672,7 @@
 
 .modal-subtitle {
   font-size: 1.1rem;
-  color: #1741a6;
+  color: var(--color-primary-700);
   margin-bottom: 8px;
   font-weight: 600;
 }
@@ -732,19 +700,19 @@
   background: none;
   border: none;
   border-bottom: 3px solid transparent;
-  color: #555;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .aqi-tab:hover {
-  color: #2563eb;
+  color: var(--color-primary-500);
 }
 
 .aqi-tab.active {
-  color: #2563eb;
+  color: var(--color-primary-500);
   font-weight: 600;
-  border-bottom-color: #2563eb;
+  border-bottom-color: var(--color-primary-500);
 }
 
 /* Chart Modal */
@@ -769,7 +737,7 @@
   width: 40px;
   height: 40px;
   border: 4px solid rgba(37, 99, 235, 0.1);
-  border-left-color: #2563eb;
+  border-left-color: var(--color-primary-500);
   border-radius: 50%;
   animation: spinner 1s linear infinite;
   margin-bottom: 16px;
@@ -787,7 +755,7 @@
   border-radius: 8px;
   padding: 20px;
   text-align: center;
-  color: #666;
+  color: var(--color-text-secondary);
   margin: 10px 0;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
@@ -808,7 +776,7 @@
 }
 
 .retry-button {
-  background-color: #2563eb;
+  background-color: var(--color-primary-500);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -827,7 +795,7 @@
   text-align: center;
   padding: 40px;
   font-size: 1rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 /* Styles for Hospital List in Emergency Modal */
@@ -843,9 +811,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background-color: #f9fafb;
+  background-color: var(--color-bg-muted);
 }
 
 .hospital-info {
@@ -856,12 +824,12 @@
 
 .hospital-name {
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .hospital-address, .hospital-distance {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .hospital-call-btn {
@@ -881,44 +849,85 @@
   background-color: #16a34a;
 }
 
-/* NEW styles for the saved places button */
-.saved-places-btn {
-  position: absolute;
-  bottom: 20px; /* Positioned below the profile button */
-  left: 33%;
-  transform: translateX(-50%);
-  z-index: 20;
-  width: 48px;
-  height: 48px;
-  background-color: #10b981; /* Green background for distinction */
-  color: #fff;
-  border: 1px solid #059669; /* Darker green border */
-  border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+/* (Saved-places floating button removed — favourites now live in the profile.) */
+
+/* ==========================================================================
+   Responsive — inner content reflow. The parent theme.css owns the
+   panel→overlay collapse and modal width; these rules tune the content.
+   ========================================================================== */
+
+/* Tablets and below: fluid place title + comfortable touch targets. */
+@media (max-width: 860px) {
+  .aqi-place {
+    font-size: clamp(1.15rem, 4vw, 1.35rem);
+    overflow-wrap: anywhere;
+  }
+
+  .aqi-card { max-width: 100%; }
+
+  /* Bigger tap targets for AQI sub-tabs on touch. */
+  .aqi-tab { padding: 12px 16px; }
+
+  /* Keep the floating action stack within the viewport on short screens. */
+  .map-selection-bar {
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    max-width: calc(100vw - 32px);
+  }
 }
 
-.saved-places-btn:hover {
-  background-color: #fff;
-  color: #10b981;
-  border: 1px solid #10b981;
-  transform: translateX(-50%) scale(1.05);
-}
+/* Phones: align the scroll/autocomplete offsets with the shorter search
+   section (theme.css sets .search-section padding to 14px 16px 12px here). */
+@media (max-width: 560px) {
+  .scrollable-content {
+    top: 96px;
+    padding: 16px 16px 28px;
+  }
 
-.saved-places-btn.open {
-  left: 20px;
-  transform: translateX(0);
-}
+  .autocomplete-dropdown {
+    top: 66px;
+    left: 16px;
+    right: 16px;
+  }
 
-.saved-places-btn.open:hover {
-  background-color: #fff;
-  color: #10b981;
-  border: 1px solid #10b981;
-  transform: scale(1.05);
+  .search-bar { margin-bottom: 12px; }
+
+  .aqi-header { padding: 14px 0; }
+
+  /* Let the AQI sub-tabs scroll horizontally instead of overflowing. */
+  .aqi-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .aqi-tabs::-webkit-scrollbar { display: none; }
+  .aqi-tab { white-space: nowrap; flex: 0 0 auto; }
+
+  /* Modal headers/bodies tighten up on phones. */
+  .modal-header { padding: 14px 16px; }
+  .modal-title { font-size: 1.15rem; }
+  .modal-body { padding: 16px; }
+  .modal-close-btn { min-width: 44px; min-height: 44px; }
+
+  /* Hospital cards stack so the Call button isn't squeezed. */
+  .hospital-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .hospital-call-btn {
+    margin-left: 0;
+    align-self: stretch;
+    text-align: center;
+    padding: 12px 16px;
+  }
+
+  /* Expanded chart modal: cap canvas height so it fits a phone viewport. */
+  .chart-modal-body { padding: 12px; }
+  .chart-modal-body canvas {
+    max-height: 60vh !important;
+  }
 }
 
 

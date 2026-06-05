@@ -22,9 +22,7 @@ services:
     container_name: breathe-rag
     restart: unless-stopped
     environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY:?GEMINI_API_KEY must be set in .env}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-pro}
-      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      # LLM (Groq) + Google Maps keys are hardcoded in app/config.py for now, so no env needed.
       CHROMA_DB_PATH: /app/chroma_db
       LOG_FORMAT: json
       LOG_LEVEL: INFO
@@ -51,9 +49,8 @@ services:
     environment:
       SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/breathesmart}
       RAG_SERVICE_BASE_URL: http://rag-service:8000
-      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-replace-me}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:?GEMINI_API_KEY must be set in .env}
+      # LLM (Groq) key/model are hardcoded in application.properties for now, so no env needed.
       APP_UPLOADS_DIR: /app/uploads/reports
     ports:
       - "8080:8080"

@@ -13,12 +13,12 @@
 }
 
 .modal-content {
-  background: white;
-  border-radius: 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   animation: modalFadeIn 0.2s ease-out;
   position: relative;
 }
@@ -30,18 +30,18 @@
 
 .modal-close-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: var(--space-4);
+  right: var(--space-4);
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #6b7280;
-  padding: 4px;
+  color: var(--color-text-tertiary);
+  padding: var(--space-1);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-base);
   z-index: 10;
 }
 
@@ -49,7 +49,7 @@
   max-width: 420px;
   padding: 0;
   /* overflow-y: auto; */ /* Removed to prevent scrolling */
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   max-height: 95vh; /* Adjusted slightly */
@@ -61,37 +61,39 @@
 }
 
 .auth-header {
-  padding: 24px 32px;
-  text-align: center;
-  border-bottom: 1px solid #eef2f9;
-  background-color: #f8fafc;
+  padding: var(--space-5) var(--space-6);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  background-color: transparent;
 }
 
 .auth-title {
-  font-size: 1.75rem;
+  font-family: var(--font-sans);
+  font-size: 1.3rem;
   font-weight: 700;
-  color: #1741a6;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
   margin: 0;
 }
 
 .auth-subtitle {
-  font-size: 1rem;
-  color: #6b7280;
-  margin-top: 8px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-2);
 }
 
 .auth-form {
-  padding: 32px;
+  padding: var(--space-8);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 /* New grid layout for the signup form */
 .auth-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .auth-form-grid .full-width {
@@ -104,45 +106,47 @@
 }
 
 .input-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #4b5563;
-  margin-bottom: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
 }
 
 .input-group label .required-star {
-  color: #dc2626;
+  color: var(--color-error-strong);
   font-weight: 700;
-  margin-left: 4px;
+  margin-left: var(--space-1);
 }
 
 .input-group input {
-  padding: 12px 14px;
-  border: 1.5px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
-  background-color: #fff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
   font-family: inherit;
+  min-height: 44px;
 }
 
 .input-group input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 18%, transparent);
 }
 
 .auth-submit-btn {
-  background-color: #2563eb;
-  color: white;
+  background-color: var(--color-primary-500);
+  color: #fff;
   border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 8px;
+  transition: background-color var(--transition-base);
+  margin-top: var(--space-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,25 +154,26 @@
 }
 
 .auth-submit-btn:hover {
-  background-color: #1d4ed8;
+  background-color: var(--color-primary-600);
 }
 
 .auth-submit-btn:disabled {
-  background-color: #93c5fd;
+  background-color: var(--color-primary-500);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .auth-footer {
   text-align: center;
-  font-size: 0.95rem;
-  color: #6b7280;
-  padding: 24px 32px;
-  background-color: #f8fafc;
-  border-top: 1px solid #eef2f9;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  padding: var(--space-6) var(--space-8);
+  background-color: var(--color-bg-muted);
+  border-top: 1px solid var(--color-border);
 }
 
 .auth-footer-link {
-  color: #2563eb;
+  color: var(--color-primary-600);
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
@@ -179,36 +184,35 @@
 }
 
 .auth-error {
-  color: #dc2626;
-  background-color: #fee2e2;
-  border: 1px solid #fca5a5;
-  border-radius: 6px;
-  padding: 12px;
-  font-size: 0.9rem;
+  color: var(--color-error-fg);
+  background-color: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
   text-align: center;
-  margin: -10px 0 10px 0;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-2) 0;
 }
 
 /* Override for the close button in auth modals */
 .auth-modal .modal-close-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  background-color: #2563eb; /* Blue background */
-  color: white; /* White icon */
-  border-radius: 50%;
-  padding: 6px;
+  top: var(--space-4);
+  right: var(--space-4);
+  background-color: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-full);
+  padding: var(--space-1);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  transition: background-color var(--transition-base), color var(--transition-base);
   border: 1px solid transparent;
 }
 
 .auth-modal .modal-close-btn:hover {
-  background-color: #fff; /* White background on hover */
-  color: #2563eb; /* Blue icon on hover */
-  border-color: #2563eb; /* Blue border on hover */
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text);
 }
 
 .btn-spinner {
@@ -216,7 +220,7 @@
   height: 20px;
   border: 3px solid rgba(255, 255, 255, 0.3);
   border-left-color: #fff;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   animation: spinner 1s linear infinite;
 }
 
@@ -239,12 +243,12 @@
 }
 
 .modal-content {
-  background: white;
-  border-radius: 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   animation: modalFadeIn 0.2s ease-out;
   position: relative;
 }
@@ -252,4 +256,45 @@
 @keyframes modalFadeIn {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
+}
+
+/* ==========================================================================
+   Responsive — single-column signup form + comfortable inputs on phones.
+   ========================================================================== */
+
+/* Tablets: let the wider signup modal use the available width and the auth
+   modal scroll if its content is tall. */
+@media (max-width: 640px) {
+  .auth-modal,
+  .auth-modal.signup {
+    max-width: 94vw;
+    overflow-y: auto;
+  }
+
+  /* Collapse the two-up signup grid to a single column. */
+  .auth-form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .auth-header { padding: 14px 16px; }
+  .auth-title { font-size: 1.15rem; }
+  .auth-form { padding: 16px; gap: 16px; }
+  .auth-footer { padding: 14px 16px; }
+}
+
+@media (max-width: 560px) {
+  /* 16px input font avoids iOS zoom-on-focus; full-width tap targets. */
+  .input-group input {
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+  .auth-submit-btn {
+    height: 50px;
+    min-height: 44px;
+  }
+  .auth-modal .modal-close-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
 }

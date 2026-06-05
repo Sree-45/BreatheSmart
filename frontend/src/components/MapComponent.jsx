@@ -1,8 +1,35 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { GOOGLE_MAPS_API_KEY, getPreferredAqi } from '../services/airQualityService';
-import { getMapConfig, getMapStyles, reverseGeocode } from '../services/mapConfigService';
+import { GOOGLE_MAPS_API_KEY } from '../services/airQualityService';
+import { getMapConfig } from '../services/mapConfigService';
 
-const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocationUpdate, onLocationConfirm, userLocation, isSelecting }, ref) => {
+// Well-known Google Maps "dark" styled-map JSON: dark land/water/roads with
+// light labels. Applied when the app theme is 'dark'; light theme keeps the
+// existing backend-provided mapConfig.mapStyles.
+const DARK_MAP_STYLE = [
+    { elementType: 'geometry', stylers: [{ color: '#212121' }] },
+    { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#212121' }] },
+    { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#757575' }] },
+    { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+    { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+    { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#bdbdbd' }] },
+    { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+    { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#181818' }] },
+    { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+    { featureType: 'poi.park', elementType: 'labels.text.stroke', stylers: [{ color: '#1b1b1b' }] },
+    { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#2c2c2c' }] },
+    { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#8a8a8a' }] },
+    { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#373737' }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3c3c3c' }] },
+    { featureType: 'road.highway.controlled_access', elementType: 'geometry', stylers: [{ color: '#4e4e4e' }] },
+    { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+    { featureType: 'transit', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#000000' }] },
+    { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d3d3d' }] },
+];
+
+const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocationUpdate, onLocationConfirm, userLocation, isSelecting, theme }, ref) => {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const infoWindowRef = useRef(null);
@@ -10,9 +37,17 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
     const userMarkerRef = useRef(null);
     const selectionMarkerRef = useRef(null); // New ref for the temporary selection marker
     const searchMarkerRef = useRef(null); // Marker for autocomplete search results
-    const [mapInitialized, setMapInitialized] = useState(false);
-    const [selectedLatLng, setSelectedLatLng] = useState(null);
     const [mapConfig, setMapConfig] = useState(null);
+
+    // Keep latest prop values in refs so the ONE-TIME map click listener reads
+    // current values without re-registering — re-registering re-ran the whole
+    // init effect on every render and re-fetched map/heatmap tiles.
+    const isSelectingRef = useRef(isSelecting);
+    const onLocationConfirmRef = useRef(onLocationConfirm);
+    const onLocationUpdateRef = useRef(onLocationUpdate);
+    useEffect(() => { isSelectingRef.current = isSelecting; }, [isSelecting]);
+    useEffect(() => { onLocationConfirmRef.current = onLocationConfirm; }, [onLocationConfirm]);
+    useEffect(() => { onLocationUpdateRef.current = onLocationUpdate; }, [onLocationUpdate]);
 
     // Expose methods to parent component
     useImperativeHandle(ref, () => ({
@@ -123,7 +158,7 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                     center: { lat: defaultLocation.latitude || defaultLocation.lat, lng: defaultLocation.longitude || defaultLocation.lng },
                     zoom: mapConfig.defaultZoom,
                     ...mapConfig.mapOptions,
-                    styles: mapConfig.mapStyles
+                    styles: theme === 'dark' ? DARK_MAP_STYLE : (mapConfig.mapStyles || [])
                 };
 
                 const mapInstance = new window.google.maps.Map(mapRef.current, mapOptions);
@@ -208,7 +243,7 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                     const lng = latLng.lng();
 
                     // --- NEW: Handle location selection mode ---
-                    if (isSelecting) {
+                    if (isSelectingRef.current) {
                         // Close any open info windows
                         if (infoWindowRef.current) infoWindowRef.current.close();
                         
@@ -248,9 +283,9 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                             const confirmBtn = document.getElementById('confirm-location-btn');
                             if (confirmBtn) {
                                 confirmBtn.addEventListener('click', () => {
-                                    if (onLocationConfirm) {
+                                    if (onLocationConfirmRef.current) {
                                         // Call the dedicated confirmation handler
-                                        onLocationConfirm(lat, lng);
+                                        onLocationConfirmRef.current(lat, lng);
                                     }
                                     // Clean up
                                     if (selectionMarkerRef.current) {
@@ -292,8 +327,8 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
 
                     // Update parent component with the clicked location for the side panel
                     // This is for regular clicks, not for saving a location.
-                    if (onLocationUpdate && !isSelecting) {
-                        onLocationUpdate(lat, lng);
+                    if (onLocationUpdateRef.current && !isSelectingRef.current) {
+                        onLocationUpdateRef.current(lat, lng);
                     }
 
                     try {
@@ -383,9 +418,6 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                 // Add control to the map
                 mapInstanceRef.current.controls[window.google.maps.ControlPosition.TOP_RIGHT].push(recenterControlDiv);
 
-                // Set map initialized
-                setMapInitialized(true);
-
                 // If user location is already available, show the marker now
                 if (userLocation && userLocation.lat && userLocation.lng) {
                     const position = new window.google.maps.LatLng(userLocation.lat, userLocation.lng);
@@ -420,17 +452,42 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
 
         // Start initialization with a small delay
         const timer = setTimeout(initializeMap, 200);
-        
+
         return () => {
             clearTimeout(timer);
         };
-    }, [mapConfig, GOOGLE_MAPS_API_KEY, onLocationUpdate, onLocationConfirm, isSelecting, userLocation, initialLocation]);
+        // Initialize ONCE when config is ready. Dynamic values (callbacks,
+        // isSelecting, locations) are handled via refs + the dedicated effects
+        // below, so we intentionally don't re-run — that was reloading the map.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mapConfig]);
 
-    // Effect for toggling heatmap visibility
+    // Restyle the (already-initialized) map when the app theme changes. The map
+    // is created ONCE above; here we only swap styles via setOptions so we never
+    // re-initialize. Dark theme uses DARK_MAP_STYLE; light keeps the backend
+    // config's mapStyles.
     useEffect(() => {
-        if (mapInstanceRef.current && airQualityOverlayRef.current) {
-            airQualityOverlayRef.current.setOpacity(showHeatmap ? 0.6 : 0);
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.setOptions({
+                styles: theme === 'dark' ? DARK_MAP_STYLE : (mapConfig?.mapStyles || [])
+            });
         }
+    }, [theme, mapConfig]);
+
+    // Toggle the AQI heatmap by adding/removing the overlay. Removing it (instead
+    // of just zeroing opacity) stops Google from fetching heatmap tiles when
+    // hidden — that was burning Air Quality API calls on every pan/zoom.
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        const overlay = airQualityOverlayRef.current;
+        if (!map || !overlay) return;
+        const overlays = map.overlayMapTypes;
+        let index = -1;
+        for (let i = 0; i < overlays.getLength(); i += 1) {
+            if (overlays.getAt(i) === overlay) { index = i; break; }
+        }
+        if (showHeatmap && index === -1) overlays.push(overlay);
+        else if (!showHeatmap && index !== -1) overlays.removeAt(index);
     }, [showHeatmap]);
 
     // Effect to manage the user location marker
@@ -488,42 +545,13 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
         }
     }, [initialLocation]);
 
-    // In the useEffect for map initialization, add click listener for selection
-    useEffect(() => {
-        if (mapInstanceRef.current) {
-            const clickListener = window.google.maps.event.addListener(mapInstanceRef.current, 'click', (event) => {
-                if (isSelecting) {
-                    const latLng = event.latLng;
-                    setSelectedLatLng(latLng);
-                    
-                    // Update or create selection marker
-                    if (selectionMarkerRef.current) {
-                        selectionMarkerRef.current.setPosition(latLng);
-                    } else {
-                        selectionMarkerRef.current = new window.google.maps.Marker({
-                            position: latLng,
-                            map: mapInstanceRef.current,
-                            title: 'Selected Location',
-                            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                            animation: window.google.maps.Animation.DROP
-                        });
-                    }
-                }
-            });
-            
-            return () => {
-                window.google.maps.event.removeListener(clickListener);
-            };
-        }
-    }, [isSelecting]);
-
     return (
         <div>
-            <div 
-                ref={mapRef} 
+            <div
+                ref={mapRef}
                 className="map-element"
-                style={{ 
-                    width: '100%', 
+                style={{
+                    width: '100%',
                     height: '100%',
                     position: 'absolute',
                     top: 0,
@@ -531,13 +559,6 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                     zIndex: 1
                 }}
             />
-            {isSelecting && selectedLatLng && (
-              <div className="map-selection-bar">
-                <span>Selected: {selectedLatLng.lat().toFixed(4)}, {selectedLatLng.lng().toFixed(4)}</span>
-                <button onClick={() => { onLocationConfirm(selectedLatLng); setSelectedLatLng(null); }}>Confirm</button>
-                <button onClick={() => { setSelectedLatLng(null); if (selectionMarkerRef.current) { selectionMarkerRef.current.setMap(null); selectionMarkerRef.current = null; } }}>Cancel</button>
-              </div>
-            )}
         </div>
     );
 });

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -20,9 +21,18 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
-    // Existing PUT for full user update (unchanged)
+    // Existing PUT for full user update
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User updatedUserData) {
+    public ResponseEntity<?> updateUser(@AuthenticationPrincipal User principal,
+                                        @PathVariable String id,
+                                        @RequestBody User updatedUserData) {
+        // Access control: a user may only update their own profile (mirror of ReportUploadController).
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "User not authenticated."));
+        }
+        if (!principal.getId().equals(id)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Cannot update a different user's profile."));
+        }
         return userRepository.findById(id)
             .map(existingUser -> {
                 // Update only the fields that can be changed in the profile

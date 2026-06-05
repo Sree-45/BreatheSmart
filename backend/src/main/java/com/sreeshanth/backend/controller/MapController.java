@@ -6,7 +6,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/map")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:5173", "https://localhost:5173"})
 public class MapController {
 
     /**

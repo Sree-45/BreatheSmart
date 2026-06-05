@@ -8,6 +8,9 @@ python-dotenv>=1.0
 langchain>=0.3
 langchain-core>=0.3
 langchain-community>=0.3
+# LLM provider: Groq via its OpenAI-compatible API (langchain-openai).
+langchain-openai>=0.2
+# langchain-google-genai kept for easy rollback to Gemini; no longer imported.
 langchain-google-genai>=2.0
 langchain-chroma>=0.1
 langchain-huggingface>=0.1

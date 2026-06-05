@@ -1,21 +1,24 @@
 .aqi-gauge-container {
-  background: #f8fafc;
-  border: 1px solid #eef2f9;
-  padding: 1.25rem;
-  border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.05);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .gauge-title {
-  font-size: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  color: #1741a6;
-  margin-bottom: 1rem;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-4);
 }
 
 .gauge-visual {
@@ -42,54 +45,58 @@
 }
 
 .gauge-value {
+  font-family: var(--font-mono);
   font-size: 2.75rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-text);
   line-height: 1;
+  letter-spacing: -0.03em;
 }
 
 .gauge-category {
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: #374151;
-  margin-top: 0.5rem;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-2);
   text-transform: capitalize;
 }
 
 .dominant-pollutant {
-  margin-top: 1rem;
-  background-color: #eef2f9;
-  padding: 0.3rem 0.8rem;
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  color: #4b5563;
+  font-family: var(--font-mono);
+  margin-top: var(--space-4);
+  background-color: var(--color-bg-subtle);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
   font-weight: 500;
-  border: 1px solid #dbe4f3;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--color-border);
 }
 
 .legend-container {
   width: 100%;
-  margin-top: 1.25rem;
-  border-top: 1px solid #eef2f9;
-  padding-top: 1.25rem;
+  margin-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-5);
 }
 
 .legend-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .legend-color-box {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
@@ -99,18 +106,58 @@
 }
 
 .legend-name {
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .legend-range {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.01em;
 }
 
 /* Remove old legend styles */
 .legend-bar,
 .legend-labels {
   display: none;
+}
+
+/* ---- Responsive ---- */
+
+/* The gauge SVG has a fixed width/height attribute but a viewBox, so it
+   scales cleanly when we let CSS drive its width. Keep it from overflowing
+   the panel and let the visual wrapper follow it. */
+.gauge-visual {
+  max-width: 100%;
+}
+.gauge-svg {
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 560px) {
+  .aqi-gauge-container {
+    padding: var(--space-4);
+  }
+  .gauge-visual {
+    width: clamp(150px, 50vw, 180px);
+    height: auto;
+  }
+  .gauge-value {
+    font-size: 2.4rem;
+  }
+  /* Two-up legend reads better than a cramped 3-up on phones. */
+  .legend-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+  }
+}
+
+/* Very narrow phones: stack the legend in one column. */
+@media (max-width: 360px) {
+  .legend-grid {
+    grid-template-columns: 1fr;
+  }
 }

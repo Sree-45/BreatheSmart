@@ -31,6 +31,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
 
     setIsLoading(true);
     try {
+      // eslint-disable-next-line no-unused-vars -- intentionally dropped from payload
       const { confirmPassword, ...signupData } = formData;
       await signup(signupData);
       alert('Signup successful! Please log in.');

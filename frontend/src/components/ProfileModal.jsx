@@ -6,9 +6,11 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import BookmarkIcon from '@mui/icons-material/Bookmark';
+import StarIcon from '@mui/icons-material/Star';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import SavedPlaces from './SavedPlaces';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DeleteIcon from '@mui/icons-material/Delete';
+import FavouritePlaces from './FavouritePlaces';
 import { updateUser } from '../services/userService';
 import { uploadHealthReport } from '../services/aiService';
 
@@ -29,8 +31,11 @@ const ProfileModal = ({
   onViewLocation,
   onDeleteLocation,
   onUseCurrentLocation,
+  activeTab,
+  onTabChange,
+  onViewPrimary,
+  onClearPrimary,
 }) => {
-  const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [profileStatus, setProfileStatus] = useState(null); // { kind: 'ok'|'error', text }
   const [healthStatus, setHealthStatus] = useState(null);
@@ -188,6 +193,16 @@ const ProfileModal = ({
               <MyLocationIcon fontSize="small" /> Use Current Location
             </button>
           )}
+          {user.primaryLocation && onViewPrimary && (
+            <button type="button" className="action-btn" onClick={onViewPrimary}>
+              <VisibilityIcon fontSize="small" /> View on Map
+            </button>
+          )}
+          {user.primaryLocation && onClearPrimary && (
+            <button type="button" className="action-btn" onClick={onClearPrimary}>
+              <DeleteIcon fontSize="small" /> Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -207,11 +222,11 @@ const ProfileModal = ({
     </div>
   );
 
-  const renderSavedPlacesTab = () => (
+  const renderFavouritesTab = () => (
     <div className="tab-content">
       <div className="form-section">
-        <h4 className="form-section-title">Saved Places</h4>
-        <SavedPlaces
+        <h4 className="form-section-title">Favourite Places</h4>
+        <FavouritePlaces
           user={user}
           onAdd={onSelectOnMap}
           onSearch={onSearchForLocation}
@@ -364,25 +379,25 @@ const ProfileModal = ({
           <div className="profile-tabs">
             <button
               className={`profile-tab ${activeTab === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveTab('profile')}
+              onClick={() => onTabChange('profile')}
             >
               <span>👤</span> Profile
             </button>
             <button
-              className={`profile-tab ${activeTab === 'savedPlaces' ? 'active' : ''}`}
-              onClick={() => setActiveTab('savedPlaces')}
+              className={`profile-tab ${activeTab === 'favourites' ? 'active' : ''}`}
+              onClick={() => onTabChange('favourites')}
             >
-              <BookmarkIcon /> Saved Places
+              <StarIcon /> Favourites
             </button>
             <button
               className={`profile-tab ${activeTab === 'health' ? 'active' : ''}`}
-              onClick={() => setActiveTab('health')}
+              onClick={() => onTabChange('health')}
             >
               <span>❤️</span> Health
             </button>
             <button
               className={`profile-tab logout-tab`}
-              onClick={() => setActiveTab('logout')}
+              onClick={() => onTabChange('logout')}
             >
               <span>🚪</span> Logout
             </button>
@@ -390,7 +405,7 @@ const ProfileModal = ({
 
           <div className="profile-tab-content">
             {activeTab === 'profile' && renderProfileTab()}
-            {activeTab === 'savedPlaces' && renderSavedPlacesTab()}
+            {activeTab === 'favourites' && renderFavouritesTab()}
             {activeTab === 'health' && renderHealthTab()}
             {activeTab === 'logout' && renderLogoutTab()}
           </div>

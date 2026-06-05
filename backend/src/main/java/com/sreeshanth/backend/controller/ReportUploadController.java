@@ -35,7 +35,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:5173", "https://localhost:5173"})
 @RequiredArgsConstructor
 public class ReportUploadController {
 
@@ -101,15 +101,16 @@ public class ReportUploadController {
                 Files.deleteIfExists(stored.absolutePath());
             } catch (IOException ignore) { }
             // Catch our wrapper exception which may contain the 400 bad request error from python
-            if (ise.getMessage().contains("400 Bad Request")) {
+            String detail = ise.getMessage() == null ? "" : ise.getMessage();
+            if (detail.contains("400 Bad Request")) {
                  return ResponseEntity.status(400).body(Map.of(
                     "error", "Document doesn't appear to be a medical report. Please upload healthcare documents, lab reports, or clinical summaries.",
-                    "detail", ise.getMessage()
+                    "detail", detail
                 ));
             }
             return ResponseEntity.status(503).body(Map.of(
                     "error", "rag-service processing failed; report not indexed.",
-                    "detail", ise.getMessage()
+                    "detail", detail
             ));
         } catch (Exception e) {
             // Soft-fail: keep the file + record the upload even if rag-service is down.

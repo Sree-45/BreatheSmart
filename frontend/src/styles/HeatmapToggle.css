@@ -2,21 +2,35 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
-  border-radius: 8px;
-  padding: 10px 15px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  gap: var(--space-3);
 }
 .toggle-label {
   display: flex;
   align-items: center;
-  font-size: 0.95rem;
-  color: #333;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   font-weight: 500;
+  min-width: 0;
 }
 .toggle-icon {
-  color: #2563eb;
-  margin-right: 8px;
+  color: var(--color-primary-500);
+  margin-right: var(--space-2);
   font-size: 1.2rem !important;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 560px) {
+  .heatmap-toggle {
+    padding: var(--space-3);
+  }
+  .toggle-label {
+    font-size: var(--font-size-xs);
+    overflow-wrap: anywhere;
+  }
 }

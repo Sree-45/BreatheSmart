@@ -17,7 +17,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/air-quality")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:5173", "https://localhost:5173"})
 public class AirQualityController {
 
     @Value("${google.maps.api.key}")

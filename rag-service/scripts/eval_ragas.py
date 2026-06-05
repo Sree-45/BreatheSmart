@@ -2,9 +2,10 @@
 
 Runs the production `run_recommendation` pipeline against a fixed test set, then
 scores it with the RAGAS library (faithfulness, answer_relevancy, context_precision)
-using the same Gemini model + HuggingFace embeddings that production uses. If the
-`ragas` package is unavailable, falls back to a keyword-coverage approximation so
-the script still produces a usable signal in CI without the heavy dependency.
+using the same Groq model (via get_llm()) + HuggingFace embeddings that production
+uses. If the `ragas` package is unavailable, falls back to a keyword-coverage
+approximation so the script still produces a usable signal in CI without the heavy
+dependency.
 
 Run from rag-service/:
     python scripts/eval_ragas.py
@@ -157,7 +158,7 @@ def run_pipeline(case: Dict[str, Any]) -> Dict[str, Any]:
 # ---------- Mode A: real RAGAS ----------
 
 def evaluate_ragas(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """RAGAS-driven evaluation using the same Gemini + HF embeddings that prod uses."""
+    """RAGAS-driven evaluation using the same Groq LLM + HF embeddings that prod uses."""
     from datasets import Dataset
     from ragas import evaluate
     from ragas.embeddings import LangchainEmbeddingsWrapper

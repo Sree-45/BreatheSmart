@@ -1,0 +1,391 @@
+/* ==========================================================================
+   theme.css — dark mode + responsive layer.
+
+   Dark mode works two ways:
+   1) Overrides the App.css design tokens for token-aware components.
+   2) Retargets the major hardcoded surfaces (Home panel, modals, cards,
+      inputs) so legacy CSS that hardcodes light colors still themes.
+
+   Applied via `html[data-theme="dark"]` (set by useTheme on <html>), which
+   also covers modals portalled to <body>. Higher specificity than the bare
+   class selectors, so load order doesn't matter.
+   ========================================================================== */
+
+/* ---- 1. Dark token overrides --------------------------------------------- */
+html[data-theme='dark'] {
+  --color-text: #ededed;
+  --color-text-secondary: #c9c9c9;
+  --color-text-tertiary: #8a8a8a;
+  --color-bg: #0d0d0d;
+  --color-bg-muted: #1c1c1c;
+  --color-bg-subtle: #181818;
+  --color-border: #333333;
+  --color-border-strong: #444444;
+  --color-primary-50: #1a1a1a;
+  --color-primary-100: #222222;
+  --color-primary-500: #4da3ff;
+  --color-primary-600: #3b82f6;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+/* ---- 2. Base surfaces ---------------------------------------------------- */
+html[data-theme='dark'],
+html[data-theme='dark'] body,
+html[data-theme='dark'] #root {
+  background-color: #000000;
+  color: var(--color-text);
+}
+
+/* ---- 3. Home: side panel, search, lists --------------------------------- */
+html[data-theme='dark'] .info-panel { background: #141414; border-right-color: #2a2a2a; }
+html[data-theme='dark'] .search-section { background: #141414; border-bottom-color: #2a2a2a; box-shadow: none; }
+html[data-theme='dark'] .search-bar { background: #1a1a1a; border-color: #2a2a2a; }
+html[data-theme='dark'] .search-input { color: #ededed; }
+html[data-theme='dark'] .search-input::placeholder { color: #64748b; }
+html[data-theme='dark'] .aqi-header { background: #141414; border-bottom-color: #2a2a2a; }
+html[data-theme='dark'] .aqi-coords,
+html[data-theme='dark'] .aqi-meta { color: #8a8a8a; }
+html[data-theme='dark'] .chart-container,
+html[data-theme='dark'] .aqi-card,
+html[data-theme='dark'] .loading-placeholder { background: #1a1a1a; box-shadow: inset 0 0 0 1px #2a2a2a; color: #c9c9c9; }
+html[data-theme='dark'] .aqi-category { color: #ededed; }
+html[data-theme='dark'] .aqi-dominant { color: #8a8a8a; }
+
+/* Autocomplete dropdown */
+html[data-theme='dark'] .autocomplete-dropdown { background: #141414; border-color: #2a2a2a; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); }
+html[data-theme='dark'] .autocomplete-item { color: #c9c9c9; border-bottom-color: #262626; }
+html[data-theme='dark'] .autocomplete-item:hover { background: #262626; color: #93c5fd; }
+
+/* ---- 4. Modals (Home, profile, auth, health recs) ----------------------- */
+html[data-theme='dark'] .modal-backdrop { background: rgba(0, 0, 0, 0.65); }
+html[data-theme='dark'] .modal-content,
+html[data-theme='dark'] .profile-modal,
+html[data-theme='dark'] .health-recs-modal,
+html[data-theme='dark'] .auth-modal,
+html[data-theme='dark'] .saved-places-modal {
+  background: #141414;
+  color: var(--color-text);
+}
+html[data-theme='dark'] .modal-header { background: #1a1a1a; border-bottom-color: #2a2a2a; }
+html[data-theme='dark'] .modal-title,
+html[data-theme='dark'] .modal-subtitle { color: #93c5fd; }
+html[data-theme='dark'] .modal-body,
+html[data-theme='dark'] .modal-concentration { color: #c9c9c9; }
+html[data-theme='dark'] .modal-close-btn { color: #8a8a8a; }
+html[data-theme='dark'] .modal-close-btn:hover { background: #262626; color: #ededed; }
+
+/* Hospital + saved/favourite cards */
+html[data-theme='dark'] .hospital-item,
+html[data-theme='dark'] .saved-place-item { background: #1a1a1a; border-color: #2a2a2a; }
+html[data-theme='dark'] .hospital-name,
+html[data-theme='dark'] .saved-place-name { color: #ededed; }
+html[data-theme='dark'] .hospital-address,
+html[data-theme='dark'] .hospital-distance,
+html[data-theme='dark'] .saved-place-address { color: #8a8a8a; }
+html[data-theme='dark'] .saved-places-btn { background: #1a1a1a; border-color: #2a2a2a; color: #c9c9c9; }
+html[data-theme='dark'] .saved-places-btn:hover { background: #262626; border-color: #333333; }
+html[data-theme='dark'] .empty-state { background: #1a1a1a; border-color: #2a2a2a; }
+
+/* ---- 5. Form controls (profile, auth) ----------------------------------- */
+html[data-theme='dark'] input,
+html[data-theme='dark'] textarea,
+html[data-theme='dark'] select {
+  background: #1a1a1a;
+  color: #ededed;
+  border-color: #2a2a2a;
+}
+html[data-theme='dark'] input::placeholder,
+html[data-theme='dark'] textarea::placeholder { color: #64748b; }
+html[data-theme='dark'] label { color: #c9c9c9; }
+
+/* ---- 5b. Blue headings/labels → light on dark ---------------------------
+   Light mode hardcodes #2563eb / #1741a6 / #1d4ed8 for headings and labels,
+   which reads as harsh blue on the dark navy panel. Retarget those TEXT
+   colors to near-white headings (#f5f5f5) and light-grey labels (#c9c9c9).
+   Interactive accents (links, buttons, active tabs, icons) are left blue. */
+
+/* Primary headings → near-white */
+html[data-theme='dark'] .aqi-place,
+html[data-theme='dark'] .aqi-index-title,
+html[data-theme='dark'] .section-title,
+html[data-theme='dark'] .gauge-title,
+html[data-theme='dark'] .time-title,
+html[data-theme='dark'] .modal-title,
+html[data-theme='dark'] .modal-subtitle,
+html[data-theme='dark'] .form-section-title,
+html[data-theme='dark'] .profile-header-main,
+html[data-theme='dark'] .health-recommendations-title,
+html[data-theme='dark'] .health-recommendations-content-title {
+  color: #f5f5f5;
+}
+
+/* Secondary labels → light grey */
+html[data-theme='dark'] .aqi-meta-label,
+html[data-theme='dark'] .modal-label,
+html[data-theme='dark'] .pollutant-name,
+html[data-theme='dark'] .pollutant-concentration {
+  color: #c9c9c9;
+}
+
+/* ---- 5c. Pollutant cards + AQI gauge: readable on dark ------------------- */
+/* Pollutant cards (light #f3f6fa bg, dark text in light mode) */
+html[data-theme='dark'] .pollutant-card-compact {
+  background: #1a1a1a;
+  box-shadow: inset 0 0 0 1px #2a2a2a;
+}
+html[data-theme='dark'] .pollutant-card-compact:hover {
+  background: #262626;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+html[data-theme='dark'] .pollutant-unit { color: #8a8a8a; }
+
+/* AQI gauge container + readouts (light #f8fafc bg, dark text in light mode) */
+html[data-theme='dark'] .aqi-gauge-container {
+  background: #1a1a1a;
+  border-color: #2a2a2a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+html[data-theme='dark'] .gauge-value { color: #f5f5f5; }
+html[data-theme='dark'] .gauge-category,
+html[data-theme='dark'] .legend-name { color: #ededed; }
+html[data-theme='dark'] .legend-range { color: #8a8a8a; }
+html[data-theme='dark'] .legend-container { border-top-color: #2a2a2a; }
+html[data-theme='dark'] .dominant-pollutant {
+  background-color: #262626;
+  border-color: #2a2a2a;
+  color: #c9c9c9;
+}
+
+/* ---- 5d. Heatmap toggle + health recommendations (were white) ----------- */
+html[data-theme='dark'] .heatmap-toggle {
+  background: #1a1a1a;
+  border-bottom-color: #2a2a2a;
+}
+html[data-theme='dark'] .toggle-label { color: #ededed; }
+
+html[data-theme='dark'] .health-recommendations-container {
+  background: #1a1a1a;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.45);
+}
+html[data-theme='dark'] .health-recommendations-content-text { color: #c9c9c9; }
+html[data-theme='dark'] .health-recommendations-content { border-top-color: #3b82f6; }
+html[data-theme='dark'] .health-recommendations-tab-button {
+  background: #141414;
+  border-color: #2a2a2a;
+}
+html[data-theme='dark'] .health-recommendations-tab-button:hover {
+  background: #262626;
+  border-color: #333333;
+}
+html[data-theme='dark'] .health-recommendations-tab-button.active {
+  background: #1c1c1c;
+  border-color: #3b82f6;
+}
+html[data-theme='dark'] .health-recommendations-tab-button svg { color: #8a8a8a; }
+html[data-theme='dark'] .health-recommendations-tab-button.active svg,
+html[data-theme='dark'] .health-recommendations-tab-button .active-icon { color: #93c5fd; }
+
+/* ---- 6. Theme toggle button --------------------------------------------- */
+.theme-toggle-btn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  transition: background var(--transition-base), color var(--transition-base), transform var(--transition-base);
+}
+.theme-toggle-btn:hover { color: var(--color-primary-500); transform: scale(1.05); }
+
+/* ---- 7. Smooth sidebar (info-panel) collapse on desktop ------------------
+   It snapped because the grid switched `30% 70%` -> `0 1fr` (mixed units, no
+   interpolation) while the panel separately slid via transform — the two
+   fought. Animate the columns with matching % units and let the panel width
+   drive the motion (transform neutralised when collapsed). Desktop only;
+   the mobile overlay layout below handles small screens. */
+@media (min-width: 861px) {
+  html .main-content {
+    grid-template-columns: 30% 70%;
+    transition: grid-template-columns 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: grid-template-columns;
+  }
+  html .main-content.panel-collapsed {
+    grid-template-columns: 0% 100%;
+  }
+  html .main-content.panel-collapsed .info-panel {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Responsive layer — MOBILE-FIRST. On phones/tablets the map is full-screen,
+   the info panel becomes a full-screen sheet, and the floating FAB stack is
+   replaced by a fixed BOTTOM NAVIGATION BAR.
+   ========================================================================== */
+
+:root { --mobile-nav-h: 64px; }
+
+/* Bottom nav + floating search: hidden on desktop, shown on mobile. */
+.mobile-bottom-nav { display: none; }
+.mobile-search { display: none; }
+
+.mobile-bottom-nav button {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 16px;
+  color: var(--color-text-tertiary);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 8px 2px 6px;
+  transition: color 0.18s ease, background 0.18s ease, transform 0.12s ease;
+}
+.mobile-bottom-nav button svg { font-size: 1.4rem; }
+.mobile-bottom-nav button:active { transform: scale(0.9); }
+.mobile-bottom-nav button.active {
+  color: var(--color-primary-600);
+  background: var(--color-primary-50);
+}
+html[data-theme='dark'] .mobile-bottom-nav button.active {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.16);
+}
+.mobile-bottom-nav button.sos { color: #ef4444; }
+.mobile-bottom-nav button.sos.active { background: rgba(239, 68, 68, 0.14); }
+
+/* Tablets and below: full-screen map, info panel as a full-screen sheet,
+   and the floating pill nav over everything. */
+@media (max-width: 860px) {
+  /* `html ` prefix beats Home.css (which loads later and pins the panel to
+     position:relative / grid). Without it the panel never goes full-screen. */
+  html .main-content { grid-template-columns: 1fr; }
+  html .map-container { grid-column: 1; }
+
+  html .info-panel {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border-right: none;
+    box-shadow: none;
+    z-index: 30;
+  }
+
+  /* Desktop chrome (panel toggle, brand badge, action dock) is replaced by the
+     bottom nav + compact mobile brand on phones. */
+  .panel-toggle-btn,
+  .map-brand,
+  .map-toolbar { display: none !important; }
+
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    height: var(--mobile-nav-h);
+    z-index: 50;
+    align-items: stretch;
+    justify-content: space-around;
+    gap: 2px;
+    padding: 6px;
+    background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid var(--color-border);
+    border-radius: 22px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+  }
+
+  /* Single floating search over both map + sheet; hide the panel's own. */
+  html .search-section { display: none; }
+  html .scrollable-content { top: 74px; padding-bottom: calc(var(--mobile-nav-h) + 36px); }
+
+  /* Compact brand mark, paired to the left of the floating search. */
+  .mobile-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: 12px;
+    width: 42px;
+    height: 42px;
+    z-index: 39;
+    background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  }
+  .mobile-brand img { display: block; border-radius: 8px; }
+
+  .mobile-search {
+    display: block;
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: 66px;
+    right: 12px;
+    z-index: 38;
+  }
+  .mobile-search .search-bar {
+    margin: 0;
+    border-radius: 999px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  }
+  .mobile-search .search-icon { font-size: 1.15rem !important; }
+  .mobile-search .search-input { font-size: 0.9rem; }
+  .mobile-search .autocomplete-dropdown {
+    position: static;
+    top: auto;
+    left: auto;
+    right: auto;
+    margin-top: 8px;
+  }
+}
+
+/* ==========================================================================
+   Modals — ONE responsive shell for every modal root, so all dialogs share
+   the same width, gutters, and scroll behaviour on every device/shape. Each
+   modal keeps its own max-width on large screens; below that they fill the
+   available width minus a consistent backdrop gutter (no per-file 94vw drift).
+   ========================================================================== */
+html .modal-backdrop {
+  padding: clamp(12px, 4vw, 28px);
+}
+html .modal-content,
+html .profile-modal,
+html .health-recs-modal,
+html .saved-places-modal {
+  width: 100%;
+  max-height: calc(100dvh - 2 * clamp(12px, 4vw, 28px));
+  overflow-y: auto;
+}
+
+/* Phones: comfortable chrome + reflow. */
+@media (max-width: 560px) {
+  html .scrollable-content { padding: 14px 14px calc(var(--mobile-nav-h) + 36px); }
+
+  .profile-tabs,
+  .health-recs-tabs { flex-wrap: wrap; }
+
+  .landing-hero { grid-template-columns: 1fr; }
+  .landing-nav-links { display: none; }
+}

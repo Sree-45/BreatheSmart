@@ -10,8 +10,8 @@ def health_check():
     return {
         "status": "ok",
         "service": "rag-service",
-        "model": settings.gemini_model,
+        "model": settings.llm_model,
         "chroma_path": settings.chroma_db_path,
         "embedding_model": settings.embedding_model,
-        "gemini_key_configured": bool(settings.gemini_api_key),
+        "llm_key_configured": settings.groq_api_key not in (None, "", "replace-me"),
     }

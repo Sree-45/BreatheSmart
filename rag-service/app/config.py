@@ -2,8 +2,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    gemini_api_key: str = "replace-me"
-    gemini_model: str = "gemini-2.5-pro"
+    # LLM — any OpenAI-compatible provider (defaults to Groq's free endpoint).
+    # Placeholder: replace with your key, or set the GROQ_API_KEY env var
+    # (pydantic reads it automatically — no .env file required).
+    groq_api_key: str = "YOUR_GROQ_API_KEY"
+    llm_base_url: str = "https://api.groq.com/openai/v1"
+    llm_model: str = "openai/gpt-oss-20b"
+
+    # Google Air Quality key for the agent's fetch_aqi_for_city tool. Placeholder:
+    # replace, or set GOOGLE_MAPS_API_KEY env var. Falls back to mock AQI if unset.
+    google_maps_api_key: str = "YOUR_GOOGLE_MAPS_API_KEY"
 
     chroma_db_path: str = "./chroma_db"
     chroma_collection_name: str = "breathesmart_global"

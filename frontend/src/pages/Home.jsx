@@ -8,26 +8,13 @@ import MyLocationIcon from '@mui/icons-material/MyLocation';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js';
 import HealthRecommendations from '../components/HealthRecommendations';
 import {
     fetchCurrentConditions,
     fetchHistoricalData,
     fetchForecastData,
-    getPreferredAqi,
     GOOGLE_MAPS_API_KEY
 } from '../services/airQualityService';
-import { findNearbyHospitals, getDistanceMatrix } from '../services/placesService'; 
 import AqiGauge from '../components/AqiGauge';
 import Pollutants from '../components/Pollutants';
 import AqiHistoryChart from '../components/AqiHistoryChart';
@@ -37,290 +24,26 @@ import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal'; 
 import ProfileModal from '../components/ProfileModal';
 import HealthRecsModal from '../components/HealthRecsModal';
+import PollutantModal from '../components/PollutantModal';
+import ChartModal from '../components/ChartModal';
+import EmergencyModal from '../components/EmergencyModal';
+import SettingsModal from '../components/SettingsModal';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import SosIcon from '@mui/icons-material/Sos';
-import { updateUser } from '../services/userService';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
-// Modal component for pollutant details
-const PollutantModal = ({ pollutant, onClose }) => {
-  if (!pollutant) return null;
-  
-  return (
-    <div className="modal-backdrop">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3 className="modal-title">{pollutant.displayName} ({pollutant.fullName})</h3>
-          <button className="modal-close-btn" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </div>
-        <div className="modal-body">
-          <div className="modal-concentration">
-            <span className="modal-label">Concentration:</span> 
-            <span className="modal-value">{pollutant.concentration.value} {pollutant.concentration.units.replace(/_/g, ' ')}</span>
-          </div>
-          
-          <div className="modal-section">
-            <h4 className="modal-subtitle">Sources</h4>
-            <p>{pollutant.additionalInfo?.sources || "Information not available"}</p>
-          </div>
-          
-          <div className="modal-section">
-            <h4 className="modal-subtitle">Health Effects</h4>
-            <p>{pollutant.additionalInfo?.effects || "Information not available"}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Chart modal component
-const ChartModal = ({ chartType, data, onClose }) => {
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false
-      },
-      title: {
-        display: true,
-        text: chartType === 'history' ? 'Historical AQI Data' : 'AQI Forecast Data',
-        font: {
-          size: 16,
-          weight: 'bold'
-        },
-        padding: {
-          bottom: 20
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        titleColor: '#333',
-        bodyColor: '#555',
-        borderColor: '#2563eb',
-        borderWidth: 1,
-        padding: 10,
-        displayColors: false,
-        callbacks: {
-          title: (items) => {
-            if (!items.length) return '';
-            const idx = items[0].dataIndex;
-            const sourceData = chartType === 'history' ? data.hoursInfo : data.hourlyForecasts;
-            return `${chartType === 'history' ? 'Historical' : 'Forecast'} AQI - ${formatDateTime(sourceData[idx].dateTime)}`;
-          },
-          label: (item) => {
-            const idx = item.dataIndex;
-            const sourceData = chartType === 'history' ? data.hoursInfo : data.hourlyForecasts;
-            const aqi = getPreferredAqi(sourceData[idx].indexes); // Use helper here
-            if (!aqi) return 'No data';
-            return [
-              `AQI: ${aqi.aqi} - ${aqi.category}`,
-              `Dominant: ${aqi.dominantPollutant.toUpperCase()}`
-            ];
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false
-        },
-        title: {
-          display: true,
-          text: 'Time'
-        }
-      },
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
-        },
-        title: {
-          display: true,
-          text: 'Air Quality Index'
-        }
-      }
-    }
-  };
-  
-  const formatDateTime = (dateTimeStr) => {
-    const date = new Date(dateTimeStr);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-  
-  if (!data || (chartType === 'history' && !data.hoursInfo) || (chartType === 'forecast' && !data.hourlyForecasts)) {
-    return (
-      <div className="modal-backdrop">
-        <div className="modal-content modal-large">
-          <div className="modal-header">
-            <h3 className="modal-title">
-              {chartType === 'history' ? 'Historical Air Quality' : 'Air Quality Forecast'}
-            </h3>
-            <button className="modal-close-btn" onClick={onClose}>
-              <CloseIcon />
-            </button>
-          </div>
-          <div className="modal-body chart-modal-body">
-            <div className="loading-message">No data available</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  const chartData = {
-    labels: (chartType === 'history' ? data.hoursInfo : data.hourlyForecasts)
-      .map(hour => formatDateTime(hour.dateTime)),
-    datasets: [
-      {
-        label: chartType === 'history' ? 'Historical AQI' : 'Forecast AQI',
-        data: (chartType === 'history' ? data.hoursInfo : data.hourlyForecasts)
-          .map(hour => getPreferredAqi(hour.indexes)?.aqi), // Use helper here
-        fill: false,
-        backgroundColor: chartType === 'history' ? '#2563eb' : '#1741a6',
-        borderColor: chartType === 'history' ? '#2563eb' : '#1741a6',
-        tension: 0.3,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        borderDash: chartType === 'forecast' ? [5, 5] : []
-      }
-    ]
-  };
-  
-  return (
-    <div className="modal-backdrop">
-      <div className="modal-content modal-large">
-        <div className="modal-header">
-          <h3 className="modal-title">
-            {chartType === 'history' ? 'Historical Air Quality' : 'Air Quality Forecast'}
-          </h3>
-          <button className="modal-close-btn" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </div>
-        <div className="modal-body chart-modal-body">
-          <Line data={chartData} options={chartOptions} height={400} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Emergency Modal Component
-const EmergencyModal = ({ onClose, location }) => {
-  const [hospitals, setHospitals] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchHospitals = async () => {
-      if (!location) {
-        setError("Current location is not available to find hospitals.");
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
-      try {
-        const nearbyHospitals = await findNearbyHospitals(location);
-        if (nearbyHospitals.length > 0) {
-          const hospitalsWithDistance = await getDistanceMatrix(location, nearbyHospitals);
-          setHospitals(hospitalsWithDistance);
-        } else {
-          setError("Could not find any hospitals nearby.");
-        }
-      } catch (err) {
-        setError(err.message || "An error occurred while fetching hospitals.");
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchHospitals();
-  }, [location]);
-
-
-  return (
-    <div className="modal-backdrop">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3 className="modal-title">Emergency Contacts & Procedures</h3>
-          <button className="modal-close-btn" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </div>
-        <div className="modal-body">
-          <div className="modal-section">
-            <h4 className="modal-subtitle">Immediate Medical Assistance</h4>
-            <p>If you are experiencing severe shortness of breath, chest pain, or dizziness, please contact emergency services immediately.</p>
-            <ul>
-              <li><strong>National Emergency Number:</strong> 112</li>
-              <li><strong>Ambulance:</strong> 102</li>
-              <li><strong>Police:</strong> 100</li>
-              <li><strong>Fire:</strong> 101</li>
-            </ul>
-          </div>
-          <div className="modal-section">
-            <h4 className="modal-subtitle">First Aid for Breathing Difficulties</h4>
-            <p>1. Stay calm and help the person to a comfortable position, usually sitting upright.</p>
-            <p>2. If they have an inhaler (e.g., for asthma), assist them in using it.</p>
-            <p>3. Loosen any tight clothing around the neck.</p>
-            <p>4. Move to an area with better ventilation or cleaner air if possible.</p>
-          </div>
-          <div className="modal-section">
-            <h4 className="modal-subtitle">Nearby Hospitals</h4>
-            {isLoading && (
-              <div className="loading-container" style={{padding: '20px 0'}}>
-                <div className="loading-spinner" />
-                <p>Finding nearest hospitals...</p>
-              </div>
-            )}
-            {error && <p className="auth-error">{error}</p>}
-            {!isLoading && !error && hospitals.length > 0 && (
-              <div className="hospitals-list">
-                {hospitals.map(hospital => (
-                  <div key={hospital.id} className="hospital-item">
-                    <div className="hospital-info">
-                      <div className="hospital-name">{hospital.displayName.text}</div>
-                      <div className="hospital-address">{hospital.formattedAddress}</div>
-                      {hospital.distance && (
-                        <div className="hospital-distance">
-                          Approx. {hospital.distance} away ({hospital.duration})
-                        </div>
-                      )}
-                    </div>
-                    {hospital.internationalPhoneNumber && (
-                       <a href={`tel:${hospital.internationalPhoneNumber}`} className="hospital-call-btn">
-                         Call
-                       </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-             {!isLoading && !error && hospitals.length === 0 && !location && (
-                <p>Enable location services to find nearby hospitals.</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
+import MapIcon from '@mui/icons-material/Map';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
+import { usePlacesAutocomplete } from '../hooks/usePlacesAutocomplete';
+import {
+    setPrimaryLocation,
+    addSavedLocation,
+    updateSavedLocation,
+    removeSavedLocation,
+    hasSavedLocationNamed,
+} from '../utils/locations';
 
 export default function Home() {
     const FALLBACK_LOCATION = {
@@ -331,21 +54,26 @@ export default function Home() {
 
     const mapRef = useRef(null);
     const searchInputRef = useRef(null); // Ref for the search input
-    const justSelectedPrediction = useRef(false); // Add this ref
     const [isMapReady, setIsMapReady] = useState(false);
     const [statusMessage, setStatusMessage] = useState('Loading Map...');
-    const [collapsed, setCollapsed] = useState(false);
-    const [searchValue, setSearchValue] = useState('');
-    const [predictions, setPredictions] = useState([]); // For autocomplete
-    const [isSearching, setIsSearching] = useState(false); // For autocomplete loading
+    // On mobile start on the MAP (collapsed) so the map is the first thing seen;
+    // desktop keeps the panel open.
+    const [collapsed, setCollapsed] = useState(
+        () => typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 860px)')?.matches,
+    );
+    // Places autocomplete (query, predictions, debounce) lives in its own hook.
+    const {
+        searchValue, setSearchValue,
+        predictions, setPredictions,
+        isSearching, justSelectedPrediction,
+    } = usePlacesAutocomplete(mapRef);
     const [showHeatmap, setShowHeatmap] = useState(true);
     
     // Data states initialized as null or empty
     const [currentData, setCurrentData] = useState(null);
     const [historyData, setHistoryData] = useState(null);
     const [forecastData, setForecastData] = useState(null);
-    const [nationalAqi, setNationalAqi] = useState(null);
-    
+
     const navigate = useNavigate();
 
     // Loading and error states
@@ -360,61 +88,21 @@ export default function Home() {
     const [chartModalData, setChartModalData] = useState(null);
     const [userMarkerPosition, setUserMarkerPosition] = useState(null);
     const [showProfileModal, setShowProfileModal] = useState(false);
+    // Controlled ProfileModal tab so it survives the close/reopen cycle during
+    // map- or search-based location selection (lands back on the right tab).
+    const [profileTab, setProfileTab] = useState('profile');
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showSignupModal, setShowSignupModal] = useState(false); // State for SignupModal
     const [showHealthRecsModal, setShowHealthRecsModal] = useState(false);
     const [showEmergencyModal, setShowEmergencyModal] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const [isSelectingLocation, setIsSelectingLocation] = useState(false);
     const [locationToUpdate, setLocationToUpdate] = useState(null); // To track which location is being updated
     const [loginPrompt, setLoginPrompt] = useState(''); // For prompting login for features
 
-    // User state — null until we hydrate from localStorage or a fresh login.
-    // Never seed with fake data, otherwise it leaks into the logged-in user via merge.
-    const [user, setUser] = useState(null);
-
-    // Hydrate auth state on mount. A token without a parseable user (or vice versa)
-    // is treated as a corrupted session and fully cleared.
-    useEffect(() => {
-        const token = localStorage.getItem('authToken');
-        const storedUser = localStorage.getItem('user');
-        if (!token || !storedUser) {
-            if (token || storedUser) {
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('user');
-            }
-            return;
-        }
-        try {
-            const parsed = JSON.parse(storedUser);
-            if (!parsed || typeof parsed !== 'object' || !parsed.id) {
-                throw new Error('stored user is missing id');
-            }
-            setUser(parsed);
-            setIsLoggedIn(true);
-        } catch (e) {
-            console.error('Failed to hydrate user from localStorage:', e);
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-        }
-    }, []);
-
-    // Persist a user update to backend + localStorage + React state. Used by every
-    // path that mutates the profile outside the modal's explicit Save button.
-    const persistUser = useCallback(async (nextUser) => {
-        if (!nextUser?.id) return nextUser;
-        try {
-            const saved = await updateUser(nextUser.id, nextUser);
-            setUser(saved);
-            localStorage.setItem('user', JSON.stringify(saved));
-            return saved;
-        } catch (e) {
-            console.error('Failed to persist user update:', e);
-            // Keep the optimistic React state but warn — the next save will retry.
-            setUser(nextUser);
-            return nextUser;
-        }
-    }, []);
+    // Auth/user state, localStorage hydration, and persistence live in useAuth.
+    const { user, setUser, isLoggedIn, persistUser, login, logout } = useAuth();
+    const { theme } = useTheme();
 
     // Load Google Maps API and attempt initial location fetch
     useEffect(() => {
@@ -422,7 +110,7 @@ export default function Home() {
             // First, try to get the user's location.
             try {
                 await handleLocate(true);
-            } catch (error) {
+            } catch {
                 console.warn("Initial geolocation failed. Falling back to a default location.");
             }
             // Then, load the Google Maps script. `initMap` will set isMapReady.
@@ -559,47 +247,6 @@ export default function Home() {
         }
     };
 
-    // --- NEW: Autocomplete Functions ---
-
-    // Fetch predictions from Google Places Autocomplete API
-    const fetchPredictions = useCallback(async (input) => {
-        if (!input || input.length < 3) {
-            setPredictions([]);
-            return;
-        }
-        setIsSearching(true);
-
-        try {
-            const response = await fetch(`https://places.googleapis.com/v1/places:autocomplete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-                    'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text.text'
-                },
-                body: JSON.stringify({
-                    input: input,
-                    // Optionally bias results to the current map view
-                    locationBias: mapRef.current?.getBounds ? {
-                        rectangle: mapRef.current.getBounds()
-                    } : undefined
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Autocomplete request failed');
-            }
-
-            const data = await response.json();
-            setPredictions(data.suggestions || []);
-        } catch (error) {
-            console.error("Autocomplete error:", error);
-            setPredictions([]);
-        } finally {
-            setIsSearching(false);
-        }
-    }, []);
-
     // Handle selecting a prediction from the list
     const handleSelectPrediction = useCallback(async (placeId, placeText) => {
         justSelectedPrediction.current = true; // Set the flag before updating state
@@ -620,49 +267,56 @@ export default function Home() {
         placesService.getDetails({
             placeId: placeId,
             fields: ['name', 'geometry.location']
-        }, (place, status) => {
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && place && place.geometry && place.geometry.location) {
-                const newLoc = {
-                    latitude: place.geometry.location.lat(),
-                    longitude: place.geometry.location.lng(),
-                    name: place.name
-                };
-                // This updates the side panel by triggering the data fetch useEffect
-                setLocation(newLoc);
-
-                // This pans the map to the new location and adds a marker
-                if (mapRef.current && mapRef.current.panToAndMark) {
-                    mapRef.current.panToAndMark(place.geometry.location);
-                }
-            } else {
+        }, async (place, status) => {
+            if (status !== window.google.maps.places.PlacesServiceStatus.OK || !place?.geometry?.location) {
                 setError(`Could not get details for location: ${placeText}`);
+                return;
+            }
+
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+            const baseName = place.name || placeText;
+
+            // If the search was launched from the profile ("Set from Search" /
+            // "Add by Search"), persist the chosen place instead of just navigating.
+            if (user && (locationToUpdate === 'primary' || locationToUpdate === 'add')) {
+                const finish = () => {
+                    setLocationToUpdate(null);
+                    setIsSelectingLocation(false);
+                    setSearchValue('');
+                    setShowProfileModal(true);
+                };
+
+                if (locationToUpdate === 'primary') {
+                    await persistUser(setPrimaryLocation(user, {
+                        name: baseName, latitude: lat, longitude: lng, address: baseName,
+                    }));
+                    finish();
+                    return;
+                }
+
+                const customName = window.prompt('Enter a name for this location:', baseName);
+                if (!customName) { finish(); return; }
+                if (hasSavedLocationNamed(user, customName)) {
+                    alert(`A saved place named "${customName}" already exists.`);
+                    finish();
+                    return;
+                }
+                await persistUser(addSavedLocation(user, {
+                    name: customName, latitude: lat, longitude: lng, address: baseName,
+                }));
+                finish();
+                return;
+            }
+
+            // Normal navigation: update the side panel + pan the map.
+            setLocation({ latitude: lat, longitude: lng, name: baseName });
+            if (mapRef.current && mapRef.current.panToAndMark) {
+                mapRef.current.panToAndMark(place.geometry.location);
             }
         });
-    }, [mapRef]);
+    }, [mapRef, user, locationToUpdate, persistUser]);
 
-    // Effect to fetch predictions when searchValue changes
-    useEffect(() => {
-        // If a prediction was just selected, don't fetch new ones.
-        if (justSelectedPrediction.current) {
-            justSelectedPrediction.current = false; // Reset the flag
-            return;
-        }
-
-        // Clear predictions if search value is empty
-        if (!searchValue) {
-            setPredictions([]);
-            return;
-        }
-
-        const handler = setTimeout(() => {
-            fetchPredictions(searchValue);
-        }, 300); // Debounce API calls
-
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [searchValue, fetchPredictions]);
-    
     // Reverse geocode helper
     const reverseGeocode = useCallback(async (lat, lng) => {
         if (!(window.google && window.google.maps && window.google.maps.Geocoder)) return null;
@@ -780,7 +434,7 @@ export default function Home() {
     });
 
     // NEW: Centralized error handler for geolocation
-    const handleLocationError = (err, isInitialLoad) => {
+    const handleLocationError = (err) => {
         let errorMessage = "Unable to retrieve your location. ";
         let errorCode = "";
         
@@ -821,11 +475,6 @@ export default function Home() {
         if (!location) {
             setLocation(FALLBACK_LOCATION);
         }
-    };
-
-    const formatDateTime = (dateTimeStr) => {
-        const date = new Date(dateTimeStr);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
     // --- Render AQI Gauge ---
@@ -910,65 +559,36 @@ export default function Home() {
         }
         const city = await reverseGeocode(lat, lng);
         const baseName = city || 'Selected Location';
+        const close = () => {
+            setIsSelectingLocation(false);
+            setLocationToUpdate(null);
+            setShowProfileModal(true);
+        };
 
         let nextUser;
         if (locationToUpdate === 'primary') {
-            nextUser = {
-                ...user,
-                primaryLocation: {
-                    name: baseName,
-                    latitude: lat,
-                    longitude: lng,
-                    address: city || null,
-                    dateAdded: user.primaryLocation?.dateAdded || new Date().toISOString(),
-                },
-            };
+            nextUser = setPrimaryLocation(user, { name: baseName, latitude: lat, longitude: lng, address: city || null });
         } else if (typeof locationToUpdate === 'number') {
-            // Edit an existing saved location.
-            nextUser = {
-                ...user,
-                savedLocations: (user.savedLocations || []).map((loc, idx) =>
-                    idx === locationToUpdate
-                        ? { ...loc, name: loc.name || baseName, latitude: lat, longitude: lng, address: city || loc.address || null }
-                        : loc,
-                ),
-            };
+            // Edit an existing saved location's position (keep its name).
+            nextUser = updateSavedLocation(user, locationToUpdate, { latitude: lat, longitude: lng, address: city || null });
         } else {
             // Add a new saved location — prompt for a friendly name first.
             const customName = window.prompt('Enter a name for this location:', baseName);
-            if (!customName) {
-                setIsSelectingLocation(false);
-                setLocationToUpdate(null);
-                setShowProfileModal(true);
+            if (!customName) { close(); return; }
+            if (hasSavedLocationNamed(user, customName)) {
+                alert(`A saved place named "${customName}" already exists.`);
+                close();
                 return;
             }
-            nextUser = {
-                ...user,
-                savedLocations: [
-                    ...(user.savedLocations || []),
-                    {
-                        name: customName,
-                        latitude: lat,
-                        longitude: lng,
-                        address: city || null,
-                        dateAdded: new Date().toISOString(),
-                    },
-                ],
-            };
+            nextUser = addSavedLocation(user, { name: customName, latitude: lat, longitude: lng, address: city || null });
         }
 
         await persistUser(nextUser);
-        setIsSelectingLocation(false);
-        setLocationToUpdate(null);
-        setShowProfileModal(true);
+        close();
     }, [reverseGeocode, locationToUpdate, user, persistUser]);
 
     const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-
-        setUser(null);
-        setIsLoggedIn(false);
+        logout();
         setShowProfileModal(false);
         navigate('/');
     };
@@ -998,27 +618,17 @@ export default function Home() {
     };
 
     const handleLoginSuccess = (loginData) => {
-        const { token, user: loggedInUser } = loginData || {};
-        if (!token || !loggedInUser) {
-            console.error('Login response is missing token or user');
-            return;
-        }
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('user', JSON.stringify(loggedInUser));
-
-        // Replace user state — never merge with hardcoded defaults, that pollutes the
-        // record with bogus fields that will never round-trip through the backend.
-        setUser(loggedInUser);
-        setIsLoggedIn(true);
+        if (!login(loginData)) return;
         setShowLoginModal(false);
         setShowSignupModal(false);
         setShowProfileModal(true);
     };
 
     const handleSelectOnMap = (indexToUpdate = null) => {
+        setProfileTab(indexToUpdate === 'primary' ? 'profile' : 'favourites');
         setShowProfileModal(false);
         setIsSelectingLocation(true);
-        setLocationToUpdate(indexToUpdate); // null for new, index for update, 'primary' for primary
+        setLocationToUpdate(indexToUpdate); // 'add'/null for new, index for update, 'primary' for primary
     };
 
     const handleViewLocationOnMap = (loc) => {
@@ -1033,14 +643,21 @@ export default function Home() {
 
     const handleDeleteLocation = async (indexToDelete) => {
         if (!user || !window.confirm('Are you sure you want to delete this saved location?')) return;
-        const nextUser = {
-            ...user,
-            savedLocations: (user.savedLocations || []).filter((_, idx) => idx !== indexToDelete),
-        };
-        await persistUser(nextUser);
+        await persistUser(removeSavedLocation(user, indexToDelete));
+    };
+
+    // Favourite (primary) location: view on the map, or clear it.
+    const handleViewPrimaryOnMap = () => {
+        if (user?.primaryLocation) handleViewLocationOnMap(user.primaryLocation);
+    };
+
+    const handleClearPrimary = async () => {
+        if (!user || !window.confirm('Remove your favourite (primary) location?')) return;
+        await persistUser({ ...user, primaryLocation: null });
     };
 
     const handleSearchLocationForProfile = (type) => {
+        setProfileTab(type === 'primary' ? 'profile' : 'favourites');
         setShowProfileModal(false);
         setLocationToUpdate(type); // 'add' or 'primary'
         // We don't need to set isSelectingLocation, just focus the search bar
@@ -1053,16 +670,12 @@ export default function Home() {
             const currentLoc = await handleLocate();
             if (!currentLoc?.latitude || !currentLoc?.longitude) return;
             const locationName = await reverseGeocode(currentLoc.latitude, currentLoc.longitude);
-            await persistUser({
-                ...user,
-                primaryLocation: {
-                    name: locationName || 'Current Location',
-                    latitude: currentLoc.latitude,
-                    longitude: currentLoc.longitude,
-                    address: locationName || null,
-                    dateAdded: user.primaryLocation?.dateAdded || new Date().toISOString(),
-                },
-            });
+            await persistUser(setPrimaryLocation(user, {
+                name: locationName || 'Current Location',
+                latitude: currentLoc.latitude,
+                longitude: currentLoc.longitude,
+                address: locationName || null,
+            }));
         } catch (error) {
             console.error('Failed to get current location for profile:', error);
             alert('Could not retrieve your current location. Please ensure location services are enabled.');
@@ -1233,6 +846,7 @@ export default function Home() {
                             onLocationConfirm={handleConfirmLocation} // Pass the new handler
                             userLocation={userMarkerPosition}
                             isSelecting={isSelectingLocation} // Pass selection state to map
+                            theme={theme} // Pass current theme so the map can render dark
                         />
                     )}
                     {isSelectingLocation && (
@@ -1241,35 +855,32 @@ export default function Home() {
                     <button onClick={cancelSelectOnMap}>Cancel</button>
                 </div>
                     )}
+
+                    {/* Brand badge — the in-page logo, top-left over the map (desktop). */}
+                    <div className="map-brand">
+                        <span className="map-brand-mark">
+                            <img src="/favicon.svg" alt="" width="30" height="30" />
+                        </span>
+                        <span className="map-brand-name">BreatheSmart</span>
+                    </div>
+
+                    {/* Action dock — consolidates the old scattered floating buttons
+                        into one clean top-right toolbar (desktop). */}
+                    <div className="map-toolbar" role="toolbar" aria-label="Quick actions">
+                        <button type="button" onClick={handleAiRecsClick} aria-label="Health recommendations" title="Health recommendations">
+                            <MedicalServicesIcon />
+                        </button>
+                        <button type="button" className="danger" onClick={handleEmergencyClick} aria-label="Emergency information" title="Emergency">
+                            <SosIcon />
+                        </button>
+                        <button type="button" onClick={handleProfileClick} aria-label="Open profile" title="Profile">
+                            <PersonIcon />
+                        </button>
+                        <button type="button" onClick={() => setShowSettings(true)} aria-label="Open settings" title="Settings">
+                            <SettingsIcon />
+                        </button>
+                    </div>
                 </div>
-
-                {/* --- Floating Action Buttons --- */}
-                {/* Emergency Button */}
-                <button
-                    className={`emergency-btn${collapsed ? ' open' : ''}`}
-                    onClick={handleEmergencyClick}
-                    aria-label="Emergency information"
-                >
-                    <SosIcon />
-                </button>
-
-                {/* AI Health Recommendations Button */}
-                <button
-                    className={`health-recs-btn${collapsed ? ' open' : ''}`}
-                    onClick={handleAiRecsClick}
-                    aria-label="Open AI health recommendations"
-                >
-                    <MedicalServicesIcon />
-                </button>
-
-                {/* Profile Button */}
-                <button 
-                    className={`profile-btn${collapsed ? ' open' : ''}`} 
-                    onClick={handleProfileClick}
-                    aria-label="Open profile"
-                >
-                    <PersonIcon />
-                </button>
 
                 {/* Panel Toggle Button */}
                 <button 
@@ -1280,7 +891,82 @@ export default function Home() {
                     {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
                 </button>
             </div>
-            
+
+            {/* Compact brand mark (mobile) — pairs with the floating search. */}
+            <div className="mobile-brand" aria-hidden="true">
+                <img src="/favicon.svg" alt="BreatheSmart" width="24" height="24" />
+            </div>
+
+            {/* Mobile bottom navigation — replaces the floating buttons on small screens */}
+            <nav className="mobile-bottom-nav" aria-label="Primary navigation">
+                <button
+                    className={!collapsed ? 'active' : ''}
+                    onClick={() => setCollapsed((c) => !c)}
+                    aria-label={collapsed ? 'Show details panel' : 'Show map'}
+                >
+                    {collapsed ? <DashboardIcon /> : <MapIcon />}
+                    <span>{collapsed ? 'Details' : 'Map'}</span>
+                </button>
+                <button onClick={handleAiRecsClick} aria-label="Health recommendations">
+                    <MedicalServicesIcon />
+                    <span>Health</span>
+                </button>
+                <button className="sos" onClick={handleEmergencyClick} aria-label="Emergency">
+                    <WarningAmberIcon />
+                    <span>SOS</span>
+                </button>
+                <button onClick={handleProfileClick} aria-label="Profile">
+                    <PersonIcon />
+                    <span>Profile</span>
+                </button>
+                <button onClick={() => setShowSettings(true)} aria-label="Settings">
+                    <SettingsIcon />
+                    <span>Settings</span>
+                </button>
+            </nav>
+
+            {/* Floating search (mobile) — single search reachable over both the
+                map and the details sheet; the panel's own search is hidden on mobile. */}
+            <div className="mobile-search">
+                <form className="search-bar" onSubmit={handleSearch} autoComplete="off">
+                    <SearchIcon className="search-icon" />
+                    <input
+                        type="text"
+                        placeholder="Search location..."
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
+                        className="search-input"
+                        disabled={!isMapReady}
+                    />
+                    <button
+                        type="button"
+                        className="locate-btn"
+                        onClick={() => handleLocate()}
+                        tabIndex={-1}
+                        aria-label="Locate me"
+                        disabled={!isMapReady}
+                    >
+                        <MyLocationIcon />
+                    </button>
+                </form>
+                {predictions.length > 0 && (
+                    <div className="autocomplete-dropdown">
+                        {isSearching && <div className="autocomplete-item">Searching...</div>}
+                        {!isSearching && predictions.map(({ placePrediction }) => (
+                            <div
+                                key={placePrediction.placeId}
+                                className="autocomplete-item"
+                                onClick={() => handleSelectPrediction(placePrediction.placeId, placePrediction.text.text)}
+                            >
+                                {placePrediction.text.text}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
             {/* Pollutant Details Modal */}
             {selectedPollutant && (
                 <PollutantModal 
@@ -1332,6 +1018,10 @@ export default function Home() {
                     onViewLocation={handleViewLocationOnMap}
                     onDeleteLocation={handleDeleteLocation}
                     onUseCurrentLocation={handleGetCurrentLocationForProfile}
+                    activeTab={profileTab}
+                    onTabChange={setProfileTab}
+                    onViewPrimary={handleViewPrimaryOnMap}
+                    onClearPrimary={handleClearPrimary}
                 />
             )}
 

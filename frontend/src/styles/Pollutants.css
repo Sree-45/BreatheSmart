@@ -1,60 +1,100 @@
 .pollutants-section {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .section-title {
-  font-size: 1.08rem;
+  font-size: var(--font-size-md);
   font-weight: 700;
-  color: #1741a6;
-  margin-bottom: 8px;
-  margin-top: 18px;
-  letter-spacing: 0.01em;
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
+  margin-top: var(--space-5);
+  letter-spacing: -0.01em;
 }
 .pollutant-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
+  gap: var(--space-2);
 }
 .pollutant-card-compact {
-  background: #f3f6fa;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(37,99,235,0.04);
-  padding: 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
   position: relative;
   text-align: center;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border);
 }
 .pollutant-card-compact:hover {
-  background: #e9f0fc;
-  border-color: #2563eb;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.1);
+  background: var(--color-bg-muted);
+  border-color: var(--color-primary-500);
+  box-shadow: var(--shadow-md);
 }
 .pollutant-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 .pollutant-name {
+  font-family: var(--font-mono);
   font-weight: 600;
-  color: #2563eb;
-  font-size: 1.02rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .pollutant-concentration {
+  font-family: var(--font-mono);
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1741a6;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
 }
 .pollutant-unit {
-  font-size: 0.85rem;
-  color: #555;
-  margin-left: 3px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-left: var(--space-1);
 }
 .info-icon {
-  color: #2563eb;
+  color: var(--color-text-tertiary);
   opacity: 0.7;
+  transition: color var(--transition-fast), opacity var(--transition-fast);
 }
 .pollutant-card-compact:hover .info-icon {
   opacity: 1;
+  color: var(--color-primary-500);
+}
+
+/* ---- Responsive ---- */
+
+/* Phones: shrink the min track so two cards fit on a 100vw panel, and stop
+   long pollutant names/values from forcing horizontal overflow. */
+@media (max-width: 560px) {
+  .section-title {
+    font-size: var(--font-size-base);
+    margin-top: var(--space-4);
+  }
+  .pollutant-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: var(--space-2);
+  }
+  .pollutant-card-compact {
+    padding: var(--space-3);
+    min-width: 0;
+  }
+  .pollutant-name {
+    overflow-wrap: anywhere;
+  }
+  .pollutant-concentration {
+    font-size: 1.3rem;
+  }
+}
+
+/* Very narrow phones: a single comfortable column. */
+@media (max-width: 360px) {
+  .pollutant-cards-grid {
+    grid-template-columns: 1fr;
+  }
 }

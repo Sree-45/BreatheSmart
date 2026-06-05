@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Annotated, List, TypedDict
 
 from langchain_core.messages import BaseMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
@@ -28,12 +28,13 @@ class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
 
 
-def _build_llm() -> ChatGoogleGenerativeAI:
-    if not settings.gemini_api_key or settings.gemini_api_key == "replace-me":
-        raise RuntimeError("GEMINI_API_KEY is not configured. Set it in rag-service/.env.")
-    return ChatGoogleGenerativeAI(
-        model=settings.gemini_model,
-        google_api_key=settings.gemini_api_key,
+def _build_llm() -> ChatOpenAI:
+    if not settings.groq_api_key or settings.groq_api_key == "replace-me":
+        raise RuntimeError("GROQ_API_KEY is not configured. Set it in rag-service/.env.")
+    return ChatOpenAI(
+        model=settings.llm_model,
+        api_key=settings.groq_api_key,
+        base_url=settings.llm_base_url,
         temperature=0.2,
         timeout=settings.llm_timeout_s,
         max_retries=settings.llm_max_retries,
