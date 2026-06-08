@@ -10,6 +10,9 @@ import StarIcon from '@mui/icons-material/Star';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PersonIcon from '@mui/icons-material/Person';
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
+import LogoutIcon from '@mui/icons-material/Logout';
 import FavouritePlaces from './FavouritePlaces';
 import { updateUser } from '../services/userService';
 import { uploadHealthReport } from '../services/aiService';
@@ -83,6 +86,16 @@ const ProfileModal = ({
     const file = event.target.files[0];
     event.target.value = ''; // allow re-selecting the same file later
     if (!file) return;
+
+    // Only PDFs or images are accepted (the `accept` attribute is a hint the
+    // browser can bypass via drag-drop / "all files", so re-check here).
+    const isAllowedType =
+      /^(application\/pdf|image\/(jpeg|png|webp|gif|bmp|heic|heif|tiff))$/i.test(file.type) ||
+      /\.(pdf|jpe?g|png|webp|gif|bmp|heic|heif|tiff?)$/i.test(file.name);
+    if (!isAllowedType) {
+      setUploadStatus({ kind: 'error', text: 'Only PDF or image files are allowed.' });
+      return;
+    }
 
     if (!user?.id) {
       setUploadStatus({ kind: 'error', text: 'You need to be signed in to upload a report.' });
@@ -305,11 +318,11 @@ const ProfileModal = ({
               name="report"
               onChange={handleReportUpload}
               disabled={isUploading}
-              accept=".pdf,.jpg,.jpeg,.png,.docx,.txt"
+              accept="application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.webp,.heic"
             />
           </div>
           <p className="upload-hint">
-            PDF, image, or text. Extracted content is indexed privately for your future recommendations.
+            PDF or image only. Extracted content is indexed privately for your future recommendations.
           </p>
           {renderStatus(uploadStatus)}
         </div>
@@ -381,7 +394,7 @@ const ProfileModal = ({
               className={`profile-tab ${activeTab === 'profile' ? 'active' : ''}`}
               onClick={() => onTabChange('profile')}
             >
-              <span>👤</span> Profile
+              <PersonIcon /> Profile
             </button>
             <button
               className={`profile-tab ${activeTab === 'favourites' ? 'active' : ''}`}
@@ -393,13 +406,13 @@ const ProfileModal = ({
               className={`profile-tab ${activeTab === 'health' ? 'active' : ''}`}
               onClick={() => onTabChange('health')}
             >
-              <span>❤️</span> Health
+              <MonitorHeartIcon /> Health
             </button>
             <button
               className={`profile-tab logout-tab`}
               onClick={() => onTabChange('logout')}
             >
-              <span>🚪</span> Logout
+              <LogoutIcon /> Logout
             </button>
           </div>
 

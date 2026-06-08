@@ -10,7 +10,7 @@ const PollutantModal = ({ pollutant, onClose }) => {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">{pollutant.displayName} ({pollutant.fullName})</h3>
-          <button className="modal-close-btn" onClick={onClose}>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">
             <CloseIcon />
           </button>
         </div>

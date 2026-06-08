@@ -9,7 +9,7 @@ export const FONT_SCALES = { xs: 0.85, small: 0.92, default: 1, large: 1.18, xl:
 /** Root px the scale multiplies. Phones use a smaller base so the default
     text isn't oversized on small screens. */
 const BASE_PX = 16;
-const MOBILE_BASE_PX = 14.5;
+const MOBILE_BASE_PX = 13.5;
 
 /** Ordered options for the settings UI (key + short label + the scale it maps to). */
 export const FONT_SCALE_OPTIONS = [

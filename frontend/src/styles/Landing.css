@@ -163,6 +163,17 @@ html[data-theme='dark'] .lp-read { box-shadow: 0 30px 70px -34px rgba(0, 0, 0, 0
 .lp-read-rows div { border-top: 1px solid var(--hair); padding-top: 8px; }
 .lp-read-rows dt { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
 .lp-read-rows dd { font-family: var(--serif); font-weight: 600; font-size: 1.4rem; margin: 2px 0 0; }
+.lp-read-weather {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.lp-read-weather-icon { font-size: 1rem; line-height: 1; }
+.lp-read-weather-val { letter-spacing: 0.04em; }
 .lp-read-src { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; color: var(--muted); border-top: 1px solid var(--hair); padding-top: 10px; }
 
 /* ----------------------------- ticker ----------------------------- */
@@ -190,9 +201,21 @@ html[data-theme='dark'] .lp-read { box-shadow: 0 30px 70px -34px rgba(0, 0, 0, 0
 /* feature grid */
 .lp-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; background: var(--hair); gap: 1px; }
 .lp-card { background: var(--paper); padding: clamp(24px, 3vw, 38px); }
-.lp-card-i { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; color: var(--accent); }
+.lp-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.lp-card-icon svg { font-size: 1.15rem !important; }
 .lp-card h3 { font-family: var(--serif); font-weight: 600; font-size: 1.32rem; margin: 14px 0 10px; letter-spacing: -0.01em; }
 .lp-card p { color: var(--muted); margin: 0; font-size: 0.98rem; }
+/* 7 cards in a 3-col grid: last card spans full width so the bottom row isn't orphaned */
+.lp-grid .lp-card:last-child:nth-child(3n + 1) { grid-column: 1 / -1; }
 
 /* trust */
 .lp-trust { padding: clamp(56px, 8vw, 96px) 0; text-align: center; border-bottom: 1px solid var(--hair); }

@@ -10,7 +10,7 @@ Three runtime services:
 | Service | Stack | Port | Role |
 |---|---|---|---|
 | `frontend` | React 19 + Vite (HTTPS dev) | 5173 | UI — map, AQI dashboards, recommendations, agent panel, settings |
-| `backend` | Spring Boot 3.5 + MongoDB + JWT (BCrypt) + Spring AI | 8080 | Auth, persistence, Google API orchestration, AI proxy |
+| `backend` | Spring Boot 3.5 + MySQL (Spring Data JPA) + JWT (BCrypt) + Spring AI | 8081 | Auth, persistence, Google API orchestration, AI proxy |
 | `rag-service` | FastAPI + LangChain + LangGraph + **Groq** (OpenAI-compatible) + ChromaDB | 8000 | All RAG / agent / LLM-retrieval logic |
 
 The LLM is **Groq** via its OpenAI-compatible Chat Completions API
@@ -42,10 +42,10 @@ model + key change with no code edits.
 ```mermaid
 flowchart LR
      U[Browser / Frontend\nReact + Vite HTTPS :5173]
-     B[Spring Boot Backend :8080\nJWT + Mongo + API orchestration]
+     B[Spring Boot Backend :8081\nJWT + MySQL/JPA + API orchestration]
      G[Google APIs\nAir Quality / Maps / Places]
      R[FastAPI RAG Service :8000\nLangChain + LangGraph + Groq]
-     M[(MongoDB :27017)]
+     M[(MySQL :3306)]
      C[(ChromaDB volume)]
      D[(rag-service/data\nWHO + EPA + clinical guidelines)]
 
@@ -88,8 +88,9 @@ either replace the placeholder strings in place, or set the matching env var
 
 ## Quick start (Docker Compose)
 
-Mongo + rag-service + Spring backend run in containers. The frontend stays
-local so HTTPS + hot reload work properly.
+MySQL + rag-service + Spring backend run in containers. The frontend stays
+local so HTTPS + hot reload work properly. Hibernate (`ddl-auto=update`)
+auto-creates the schema on first boot, so there's no manual DB setup.
 
 ```bash
 # Provide secrets via the shell (Compose reads them) — env overrides the
@@ -100,8 +101,8 @@ export GOOGLE_MAPS_API_KEY="AIza..."     # optional if you edited config in plac
 
 docker compose up --build
 # rag:      http://localhost:8000/health
-# backend:  http://localhost:8080/actuator/health
-# mongo:    mongodb://localhost:27017
+# backend:  http://localhost:8081/actuator/health
+# mysql:    localhost:3306  (db breathesmart, root/root)
 ```
 
 Populate the corpus once the rag-service is up (required, or retrieval
@@ -125,7 +126,11 @@ npm run dev
 
 ## Manual setup (no Docker)
 
-Need: Node 20+, Java 21, Python 3.12+, MongoDB on `:27017`.
+Need: Node 20+, Java 21, Python 3.12+, MySQL 8 on `:3306` (creds `root`/`root`).
+The backend connects to `jdbc:mysql://localhost:3306/breathesmart?...` and
+Hibernate (`ddl-auto=update`) auto-creates the schema — you only need a running
+MySQL; the `breathesmart` database is auto-created via the `createDatabaseIfNotExist`
+URL flag.
 
 ```bash
 # rag-service
@@ -135,10 +140,11 @@ pip install -r requirements.txt
 $env:GROQ_API_KEY="gsk_..."                       # or edit app/config.py
 python main.py                                    # :8000
 
-# backend (in a new shell)
+# backend (in a new shell) — defaults to local MySQL root/root; override with
+# SPRING_DATASOURCE_URL / SPRING_DATASOURCE_USERNAME / SPRING_DATASOURCE_PASSWORD if needed
 cd backend
 $env:GROQ_API_KEY="gsk_..."; $env:JWT_SECRET="..."; $env:GOOGLE_MAPS_API_KEY="AIza..."
-./mvnw spring-boot:run                            # :8080  (.\mvnw.cmd on Windows)
+./mvnw spring-boot:run                            # :8081  (.\mvnw.cmd on Windows)
 
 # frontend (in a new shell)
 cd frontend
@@ -285,7 +291,7 @@ code bug (Chroma uses L2 distance; lower = more similar).
 
 ```text
 BreatheSmart/
-├── docker-compose.yml          # Mongo + rag-service + backend
+├── docker-compose.yml          # MySQL + rag-service + backend
 ├── backend/
 │   ├── Dockerfile
 │   └── src/main/java/com/sreeshanth/backend/{config,controller,dto,model,service}
@@ -311,6 +317,13 @@ BreatheSmart/
 
 ## Troubleshooting
 
+- **Backend won't start / "Communications link failure" / "Access denied"** —
+  MySQL isn't reachable or the creds don't match. Confirm MySQL 8 is running on
+  `:3306` with user `root`/`root`, or point the app elsewhere via
+  `SPRING_DATASOURCE_URL` / `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD`.
+  The `breathesmart` database is auto-created by the `createDatabaseIfNotExist`
+  URL flag and tables are auto-created by Hibernate (`ddl-auto=update`) — no manual
+  schema setup needed.
 - **"Asks for login again right after I logged in"** — clear localStorage and
   reload; an old session can have a `user` entry without a matching
   `authToken`.

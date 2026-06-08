@@ -1,8 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import '../styles/EmergencyModal.css';
 import CloseIcon from '@mui/icons-material/Close';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import { findNearbyHospitals, getDistanceMatrix } from '../services/placesService';
 
-/** Emergency info: helplines, breathing first-aid, and nearby hospitals. */
+const CONTACTS = [
+  { label: 'Emergency', num: '112', Icon: WarningAmberIcon, cls: 'em-red' },
+  { label: 'Ambulance', num: '102', Icon: LocalHospitalIcon, cls: 'em-green' },
+  { label: 'Police', num: '100', Icon: LocalPoliceIcon, cls: 'em-blue' },
+  { label: 'Fire', num: '101', Icon: LocalFireDepartmentIcon, cls: 'em-orange' },
+];
+
+const FIRST_AID = [
+  'Stay calm and help the person sit upright in a comfortable position.',
+  'If they have an inhaler (e.g. for asthma), assist them in using it.',
+  'Loosen any tight clothing around the neck.',
+  'Move to an area with better ventilation or cleaner air.',
+];
+
+/** Emergency info: one-tap helplines, breathing first-aid, and nearby hospitals. */
 const EmergencyModal = ({ onClose, location }) => {
   const [hospitals, setHospitals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,46 +50,54 @@ const EmergencyModal = ({ onClose, location }) => {
         setIsLoading(false);
       }
     };
-
     fetchHospitals();
   }, [location]);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content emergency-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 className="modal-title">Emergency Contacts &amp; Procedures</h3>
-          <button className="modal-close-btn" onClick={onClose}>
+          <h3 className="modal-title">Emergency</h3>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">
             <CloseIcon />
           </button>
         </div>
-        <div className="modal-body">
-          <div className="modal-section">
-            <h4 className="modal-subtitle">Immediate Medical Assistance</h4>
-            <p>If you are experiencing severe shortness of breath, chest pain, or dizziness, please contact emergency services immediately.</p>
-            <ul>
-              <li><strong>National Emergency Number:</strong> 112</li>
-              <li><strong>Ambulance:</strong> 102</li>
-              <li><strong>Police:</strong> 100</li>
-              <li><strong>Fire:</strong> 101</li>
-            </ul>
-          </div>
-          <div className="modal-section">
-            <h4 className="modal-subtitle">First Aid for Breathing Difficulties</h4>
-            <p>1. Stay calm and help the person to a comfortable position, usually sitting upright.</p>
-            <p>2. If they have an inhaler (e.g., for asthma), assist them in using it.</p>
-            <p>3. Loosen any tight clothing around the neck.</p>
-            <p>4. Move to an area with better ventilation or cleaner air if possible.</p>
-          </div>
-          <div className="modal-section">
-            <h4 className="modal-subtitle">Nearby Hospitals</h4>
+
+        <div className="modal-body emergency-body">
+          <section className="em-section">
+            <h4 className="em-title">Immediate medical assistance</h4>
+            <p className="em-lead">
+              Severe shortness of breath, chest pain, or dizziness? Call emergency services right away — tap a number to dial.
+            </p>
+            <div className="em-contacts">
+              {CONTACTS.map(({ label, num, Icon, cls }) => (
+                <a key={num} href={`tel:${num}`} className={`em-contact ${cls}`}>
+                  <span className="em-contact-icon"><Icon /></span>
+                  <span className="em-contact-text">
+                    <span>{label}</span>
+                    <strong>{num}</strong>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </section>
+
+          <section className="em-section">
+            <h4 className="em-title">First aid — breathing difficulty</h4>
+            <ol className="em-steps">
+              {FIRST_AID.map((step, i) => <li key={i}>{step}</li>)}
+            </ol>
+          </section>
+
+          <section className="em-section">
+            <h4 className="em-title">Nearby hospitals</h4>
             {isLoading && (
-              <div className="loading-container" style={{ padding: '20px 0' }}>
+              <div className="em-loading">
                 <div className="loading-spinner" />
-                <p>Finding nearest hospitals...</p>
+                <p>Finding nearest hospitals…</p>
               </div>
             )}
-            {error && <p className="auth-error">{error}</p>}
+            {error && <p className="em-error">{error}</p>}
             {!isLoading && !error && hospitals.length > 0 && (
               <div className="hospitals-list">
                 {hospitals.map((hospital) => (
@@ -84,19 +111,24 @@ const EmergencyModal = ({ onClose, location }) => {
                         </div>
                       )}
                     </div>
-                    {hospital.internationalPhoneNumber && (
-                      <a href={`tel:${hospital.internationalPhoneNumber}`} className="hospital-call-btn">
-                        Call
-                      </a>
-                    )}
+                    <div className="hospital-actions">
+                      {hospital.internationalPhoneNumber ? (
+                        <a href={`tel:${hospital.internationalPhoneNumber}`} className="hospital-btn call">Call</a>
+                      ) : (
+                        <span className="hospital-btn unavailable">Number not available</span>
+                      )}
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${hospital.displayName.text}, ${hospital.formattedAddress}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hospital-btn directions"
+                      >Get directions</a>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-            {!isLoading && !error && hospitals.length === 0 && !location && (
-              <p>Enable location services to find nearby hospitals.</p>
-            )}
-          </div>
+          </section>
         </div>
       </div>
     </div>

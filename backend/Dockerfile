@@ -21,11 +21,11 @@ WORKDIR /app
 COPY --from=builder --chown=app:app /build/app.jar /app/app.jar
 
 USER app
-EXPOSE 8080
+EXPOSE 8081
 
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD wget -q --spider http://localhost:8080/actuator/health || exit 1
+    CMD wget -q --spider http://localhost:8081/actuator/health || exit 1
 
 ENTRYPOINT ["sh","-c","exec java $JAVA_OPTS -jar /app/app.jar"]

@@ -12,7 +12,7 @@ export default defineConfig({
     https: true, // Enable HTTPS
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8081',
         changeOrigin: true,
         secure: false // Set to false if the backend is HTTP, not HTTPS
       }

@@ -1,0 +1,119 @@
+/* Emergency modal — token-driven, works in light + dark, responsive. */
+.emergency-modal .modal-body.emergency-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 22px 24px;
+}
+
+.em-title {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+  margin: 0 0 12px;
+}
+.em-lead {
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+/* One-tap emergency contact cards */
+.em-contacts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.em-contact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-muted);
+  transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.em-contact:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.em-contact-icon { display: flex; flex-shrink: 0; }
+.em-contact svg { font-size: 1.7rem; }
+.em-contact-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.em-contact-text span { font-size: 0.75rem; color: var(--color-text-secondary); }
+.em-contact-text strong { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--color-text); }
+.em-red svg { color: #ef4444; }
+.em-green svg { color: #16a34a; }
+.em-blue svg { color: var(--color-primary-500); }
+.em-orange svg { color: #ea8a3c; }
+
+/* Numbered first-aid steps */
+.em-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.em-steps li {
+  position: relative;
+  padding: 12px 14px 12px 50px;
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  counter-increment: step;
+}
+.em-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-primary-500);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.em-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  color: var(--color-text-secondary);
+}
+.em-error {
+  background: var(--color-error-bg);
+  color: var(--color-error-fg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+@media (max-width: 420px) {
+  .em-contact { padding: 12px; gap: 9px; }
+  .em-contact svg { font-size: 1.4rem; }
+  .em-contact-text strong { font-size: 1.1rem; }
+}

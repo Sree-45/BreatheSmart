@@ -93,7 +93,7 @@ const ChartModal = ({ chartType, data, onClose }) => {
       <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>
-          <button className="modal-close-btn" onClick={onClose}>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">
             <CloseIcon />
           </button>
         </div>

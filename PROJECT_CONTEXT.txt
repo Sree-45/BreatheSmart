@@ -31,10 +31,10 @@ What the user sees:
 
 What's behind the scenes (three runtime services):
   1. frontend/      — React 19 + Vite (HTTPS dev server :5173)
-  2. backend/       — Spring Boot 3.5 + MongoDB + JWT + Spring AI (:8080)
+  2. backend/       — Spring Boot 3.5 + MySQL (Spring Data JPA) + JWT + Spring AI (:8081)
   3. rag-service/   — FastAPI + LangChain + LangGraph + Gemini + ChromaDB (:8000)
 
-Plus stateful infrastructure: MongoDB (users, reports metadata) and ChromaDB
+Plus stateful infrastructure: MySQL (users, reports metadata) and ChromaDB
 (global guideline corpus + per-user report chunks).
 
 ================================================================================
@@ -46,12 +46,12 @@ Plus stateful infrastructure: MongoDB (users, reports metadata) and ChromaDB
            │   - Landing                │
            │   - Home (map + side panel)│
            └────────────┬────────────────┘
-                        │  /api/* (Vite dev proxy → http://localhost:8080)
+                        │  /api/* (Vite dev proxy → http://localhost:8081)
                         ▼
            ┌─────────────────────────────┐
-           │ Spring Boot Backend (:8080) │
+           │ Spring Boot Backend (:8081) │
            │  - JWT auth                 │
-           │  - User/Report Mongo store  │
+           │  - User/Report MySQL store  │
            │  - Google Air Quality proxy │
            │  - RAG orchestration        │
            │  - Spring AI ChatClient     │
@@ -59,7 +59,7 @@ Plus stateful infrastructure: MongoDB (users, reports metadata) and ChromaDB
                  │                   │
                  ▼                   ▼
         ┌────────────────┐  ┌─────────────────────────┐
-        │ MongoDB :27017 │  │ rag-service FastAPI :8000│
+        │ MySQL :3306    │  │ rag-service FastAPI :8000│
         │  users, reports│  │  - /recommend (RAG)      │
         │                │  │  - /agent/analyze (LG)   │
         │                │  │  - /ingest/global        │
@@ -89,7 +89,7 @@ Authenticated backend endpoints (require Bearer JWT):
 
 BreatheSmart/
 ├── README.md                   # Setup + ops guide (full text embedded below)
-├── docker-compose.yml          # Mongo + rag-service + backend
+├── docker-compose.yml          # MySQL + rag-service + backend
 ├── .env.example                # Template for required env vars
 ├── .gitignore
 ├── backend/                    # Spring Boot project
@@ -112,7 +112,7 @@ agent that picks its own tools.
 
 Three runtime services:
 - frontend     React 19 + Vite (HTTPS dev)
-- backend      Spring Boot 3.5 + MongoDB + JWT + Spring AI
+- backend      Spring Boot 3.5 + MySQL (Spring Data JPA) + JWT + Spring AI
 - rag-service  FastAPI + LangChain + LangGraph + Gemini + ChromaDB
 
 [Sections covered: Architecture, Quick start (Docker Compose), Manual setup
@@ -130,7 +130,9 @@ Required env vars:
   GEMINI_API_KEY            (required) — Google AI Studio key
   JWT_SECRET                (required) — `openssl rand -hex 64`
   GOOGLE_MAPS_API_KEY       (optional) — for live AQI / Maps
-  MONGODB_URI               (optional) — defaults to local docker mongo
+  SPRING_DATASOURCE_URL     (optional) — defaults to local MySQL breathesmart
+  SPRING_DATASOURCE_USERNAME (optional) — defaults to root
+  SPRING_DATASOURCE_PASSWORD (optional) — defaults to root
   GEMINI_MODEL              (optional) — defaults to gemini-2.5-pro
 
 Recommended PDFs to drop into rag-service/data/pdfs/ (gitignored):
@@ -148,14 +150,17 @@ sources[].source in the /recommend response.
 ================ docker-compose.yml ================
 services:
 
-  mongo:
-    image: mongo:7
-    container_name: breathe-mongo
+  mysql:
+    image: mysql:8.4
+    container_name: breathe-mysql
     restart: unless-stopped
-    ports: ["27017:27017"]
-    volumes: [mongo_data:/data/db]
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: breathesmart
+    ports: ["3306:3306"]
+    volumes: [mysql_data:/var/lib/mysql]
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -175,7 +180,7 @@ services:
       LOG_FORMAT: json
       LOG_LEVEL: INFO
       UVICORN_RELOAD: "false"
-      CORS_ALLOWED_ORIGINS: http://localhost:5173,https://localhost:5173,http://backend:8080
+      CORS_ALLOWED_ORIGINS: http://localhost:5173,https://localhost:5173,http://backend:8081
     ports: ["8000:8000"]
     volumes:
       - chroma_data:/app/chroma_db
@@ -189,27 +194,31 @@ services:
     container_name: breathe-backend
     restart: unless-stopped
     depends_on:
-      mongo: { condition: service_healthy }
+      mysql: { condition: service_healthy }
       rag-service: { condition: service_started }
     environment:
-      SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/breathesmart}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/breathesmart?createDatabaseIfNotExist=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
       RAG_SERVICE_BASE_URL: http://rag-service:8000
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-replace-me}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
       GEMINI_API_KEY: ${GEMINI_API_KEY:?GEMINI_API_KEY must be set in .env}
       APP_UPLOADS_DIR: /app/uploads/reports
-    ports: ["8080:8080"]
+    ports: ["8081:8081"]
     volumes: [backend_uploads:/app/uploads]
     networks: [breathe-net]
 
 networks: { breathe-net: { driver: bridge } }
-volumes:  { mongo_data: {}, chroma_data: {}, backend_uploads: {} }
+volumes:  { mysql_data: {}, chroma_data: {}, backend_uploads: {} }
 
 ================ .env.example ================
 GEMINI_API_KEY=replace-me
 JWT_SECRET=replace-with-a-long-random-string-at-least-64-chars
 GOOGLE_MAPS_API_KEY=
-MONGODB_URI=mongodb://mongo:27017/breathesmart
+SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/breathesmart?createDatabaseIfNotExist=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=root
 GEMINI_MODEL=gemini-2.5-pro
 
 ================ .gitignore (key entries) ================
@@ -227,15 +236,18 @@ rag-service/data/pdfs/
 Package: com.sreeshanth.backend
 Build:   Maven (pom.xml). Spring Boot 3.5.6, Spring AI 1.0.0, Tika 2.9.2.
 Stack:   spring-boot-starter-web (servlet), spring-boot-starter-webflux
-         (only for WebClient), spring-boot-starter-data-mongodb (+ reactive),
-         spring-boot-starter-security, JJWT 0.12.5, Spring AI starter
+         (only for WebClient), spring-boot-starter-data-jpa + mysql-connector-j
+         (Hibernate), spring-boot-starter-security, JJWT 0.12.5, Spring AI starter
          openai (pointed at Gemini's OpenAI-compatible endpoint), Apache
          Tika (PDF/DOCX/image text extraction), Lombok, devtools.
 
 application.properties highlights:
   spring.main.web-application-type=servlet
   google.maps.api.key=${GOOGLE_MAPS_API_KEY:replace-me}
-  spring.data.mongodb.uri=${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/breathesmart}
+  spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/breathesmart?createDatabaseIfNotExist=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false}
+  spring.datasource.username=${SPRING_DATASOURCE_USERNAME:root}
+  spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:root}
+  spring.jpa.hibernate.ddl-auto=update      # auto-creates tables
   rag.service.base-url=${RAG_SERVICE_BASE_URL:http://localhost:8000}
   jwt.secret=${JWT_SECRET:replace-with-a-long-random-secret}
   jwt.expiration=86400000  # 24 hours
@@ -278,25 +290,29 @@ config/RestTemplateConfig.java
     calls. (RagServiceClient uses WebClient instead.)
 
 ------------------------------------------------------------
-5.2 Domain model (MongoDB)
+5.2 Domain model (MySQL — Spring Data JPA / Hibernate)
 ------------------------------------------------------------
 
 model/User.java
-  - @Document("users") implements UserDetails.
+  - @Entity (table "users") implements UserDetails.
+  - id is a String UUID (unchanged by the MySQL migration, so the
+    rag-service per-user scope "user_<id>" still matches).
   - Fields: id, name, phone (unique), email, password, dob,
-    primaryLocation (Location), savedLocations (List<Location>),
-    height, weight, medicalConditions, bloodType,
-    pastReports (List<Report>).
+    primaryLocation (embedded Location → primary_location_* columns),
+    savedLocations (List<Location>), height, weight, medicalConditions,
+    bloodType, pastReports (List<Report>).
+  - savedLocations + pastReports are @ElementCollection collection tables
+    (user_saved_locations / user_past_reports).
   - getUsername() returns phone (Spring Security identifier).
 
 model/Location.java
-  - {name, latitude, longitude, address, dateAdded(ISO-8601 string)}.
+  - @Embeddable {name, latitude, longitude, address, dateAdded(ISO-8601 string)}.
 
 model/Report.java
-  - {fileName, uploadDate, analysisResult}.
+  - @Embeddable {fileName, uploadDate, analysisResult}.
 
 repository/UserRepository.java
-  - MongoRepository<User, String> with findByPhone, findByEmail.
+  - JpaRepository<User, String> with findByPhone, findByEmail.
 
 ------------------------------------------------------------
 5.3 Controllers (REST)
@@ -444,7 +460,7 @@ Persistent state: chroma_db/ volume — single collection
 - configure_logging(settings.log_level)
 - FastAPI app with CORS middleware:
   CORS_ALLOWED_ORIGINS env (comma-separated), default
-    http://localhost:8080, http://localhost:5173, https://localhost:5173.
+    http://localhost:8081, http://localhost:5173, https://localhost:5173.
 - Routers included: health, recommend, ingest, agent.
 - __main__: uvicorn.run with reload toggled by UVICORN_RELOAD env.
 
@@ -660,7 +676,7 @@ eval_ragas.py
 
 vite.config.js
   - plugins: react(), basicSsl()  → HTTPS dev.
-  - server.proxy: "/api" → http://localhost:8080 (changeOrigin, secure:false).
+  - server.proxy: "/api" → http://localhost:8081 (changeOrigin, secure:false).
 
 package.json
   Deps: react 19, react-dom 19, react-router-dom 7, axios,
@@ -957,12 +973,12 @@ Manual (no Docker):
   python main.py                      # :8000
   # backend
   cd backend && export GEMINI_API_KEY=... JWT_SECRET=... GOOGLE_MAPS_API_KEY=...
-  ./mvnw spring-boot:run              # :8080
+  ./mvnw spring-boot:run              # :8081
   # frontend (as above)
 
 Health checks:
   http://localhost:8000/health
-  http://localhost:8080/actuator/health
+  http://localhost:8081/actuator/health
 
 Eval:
   cd rag-service && python scripts/eval_ragas.py

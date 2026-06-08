@@ -13,12 +13,11 @@ import {
     fetchCurrentConditions,
     fetchHistoricalData,
     fetchForecastData,
+    fetchWeatherConditions,
     GOOGLE_MAPS_API_KEY
 } from '../services/airQualityService';
 import AqiGauge from '../components/AqiGauge';
 import Pollutants from '../components/Pollutants';
-import AqiHistoryChart from '../components/AqiHistoryChart';
-import AqiForecastChart from '../components/AqiForecastChart';
 import HeatmapToggle from '../components/HeatmapToggle';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal'; 
@@ -28,12 +27,15 @@ import PollutantModal from '../components/PollutantModal';
 import ChartModal from '../components/ChartModal';
 import EmergencyModal from '../components/EmergencyModal';
 import SettingsModal from '../components/SettingsModal';
+import StatsModal from '../components/StatsModal';
+import LocationPicker from '../components/LocationPicker';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
-import SosIcon from '@mui/icons-material/Sos';
 import MapIcon from '@mui/icons-material/Map';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import SettingsIcon from '@mui/icons-material/Settings';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { usePlacesAutocomplete } from '../hooks/usePlacesAutocomplete';
@@ -45,6 +47,28 @@ import {
     hasSavedLocationNamed,
 } from '../utils/locations';
 
+// Map a Google Weather condition to a small emoji for the animated weather chip.
+function weatherEmoji(condition) {
+    const txt = (condition?.description?.text || condition?.type || '').toLowerCase();
+    if (/thunder|storm/.test(txt)) return '⛈️';
+    if (/snow|sleet|flurr|ice/.test(txt)) return '❄️';
+    if (/rain|drizzle|shower/.test(txt)) return '🌧️';
+    if (/fog|mist|haze|smoke/.test(txt)) return '🌫️';
+    if (/wind|breez/.test(txt)) return '🌬️';
+    if (/cloud|overcast/.test(txt)) return '☁️';
+    if (/clear|sun|fair/.test(txt)) return '☀️';
+    return '🌡️';
+}
+
+// Auto-generate a non-colliding favourite name from a place name (no prompt).
+function uniqueFavName(user, base) {
+    const label = base || 'Saved place';
+    if (!hasSavedLocationNamed(user, label)) return label;
+    let i = 2;
+    while (hasSavedLocationNamed(user, `${label} (${i})`)) i += 1;
+    return `${label} (${i})`;
+}
+
 export default function Home() {
     const FALLBACK_LOCATION = {
         latitude: 17.385044,
@@ -53,7 +77,6 @@ export default function Home() {
     };
 
     const mapRef = useRef(null);
-    const searchInputRef = useRef(null); // Ref for the search input
     const [isMapReady, setIsMapReady] = useState(false);
     const [statusMessage, setStatusMessage] = useState('Loading Map...');
     // On mobile start on the MAP (collapsed) so the map is the first thing seen;
@@ -68,11 +91,15 @@ export default function Home() {
         isSearching, justSelectedPrediction,
     } = usePlacesAutocomplete(mapRef);
     const [showHeatmap, setShowHeatmap] = useState(true);
+    const [aqiCode, setAqiCode] = useState('ind_cpcb'); // selected AQI index (NAQI vs Universal)
+    const [showStats, setShowStats] = useState(false); // Stats modal (history/forecast charts + weather)
+    const [showLocationPicker, setShowLocationPicker] = useState(false); // Swiggy-style location picker
     
     // Data states initialized as null or empty
     const [currentData, setCurrentData] = useState(null);
     const [historyData, setHistoryData] = useState(null);
     const [forecastData, setForecastData] = useState(null);
+    const [weatherData, setWeatherData] = useState(null);
 
     const navigate = useNavigate();
 
@@ -172,7 +199,19 @@ export default function Home() {
                 console.warn("Could not load forecast data:", forecastError);
                 setForecastData(null);
             }
-            
+
+            // Weather (temperature/conditions) — optional, never blocks the panel.
+            try {
+                const weatherResult = await fetchWeatherConditions({
+                    latitude: loc.latitude,
+                    longitude: loc.longitude
+                });
+                setWeatherData(weatherResult);
+            } catch (weatherError) {
+                console.warn("Could not load weather data:", weatherError);
+                setWeatherData(null);
+            }
+
             setIsLoading(false);
         } catch (err) {
             console.error("Error fetching air quality data:", err);
@@ -295,15 +334,8 @@ export default function Home() {
                     return;
                 }
 
-                const customName = window.prompt('Enter a name for this location:', baseName);
-                if (!customName) { finish(); return; }
-                if (hasSavedLocationNamed(user, customName)) {
-                    alert(`A saved place named "${customName}" already exists.`);
-                    finish();
-                    return;
-                }
                 await persistUser(addSavedLocation(user, {
-                    name: customName, latitude: lat, longitude: lng, address: baseName,
+                    name: uniqueFavName(user, baseName), latitude: lat, longitude: lng, address: baseName,
                 }));
                 finish();
                 return;
@@ -483,44 +515,60 @@ export default function Home() {
             return <div className="loading-placeholder">Loading AQI data...</div>;
         }
 
-        let aqi = null;
-        let gaugeTitle = '';
+        const indexes = currentData.indexes;
+        const LABELS = { ind_cpcb: 'NAQI', uaqi: 'Universal' };
 
-        // Default to national AQI
-        aqi = currentData.indexes.find(idx => idx.code === 'ind_cpcb');
-        gaugeTitle = 'NAQI (India)';
-
-        if (!aqi) {
-            // Fallback to universal if national is not available
-            aqi = currentData.indexes.find(idx => idx.code === 'uaqi');
-            gaugeTitle = 'Universal AQI';
-        }
+        // Selected index, falling back to NAQI → Universal → whatever's first.
+        const aqi =
+            indexes.find(idx => idx.code === aqiCode) ||
+            indexes.find(idx => idx.code === 'ind_cpcb') ||
+            indexes.find(idx => idx.code === 'uaqi') ||
+            indexes[0];
 
         if (!aqi) {
-            return <div className="loading-placeholder">{gaugeTitle} data not available</div>;
+            return <div className="loading-placeholder">AQI data not available</div>;
         }
+
+        const gaugeTitle =
+            aqi.code === 'ind_cpcb' ? 'NAQI (India)' :
+            aqi.code === 'uaqi' ? 'Universal AQI' :
+            (aqi.displayName || aqi.code);
 
         let color;
         if (aqi.color && aqi.color.red !== undefined) {
             // The API provides color components as fractions of 1.0, but some are integers.
-            // We need to handle both cases.
             const red = aqi.color.red > 1 ? aqi.color.red : Math.round(aqi.color.red * 255);
             const green = aqi.color.green > 1 ? aqi.color.green : Math.round(aqi.color.green * 255);
             const blue = aqi.color.blue > 1 ? aqi.color.blue : Math.round(aqi.color.blue * 255);
             color = `rgb(${red}, ${green}, ${blue})`;
         } else {
-            // Fallback color if the API doesn't provide one
-            color = "#FFC107"; // A neutral yellow
+            color = "#FFC107"; // A neutral yellow fallback
         }
 
         return (
-            <AqiGauge
-                title={gaugeTitle}
-                value={aqi.aqi}
-                category={aqi.category}
-                color={color}
-                dominantPollutant={aqi.dominantPollutant}
-            />
+            <>
+                {indexes.length > 1 && (
+                    <div className="aqi-index-toggle" role="group" aria-label="Air quality index">
+                        {indexes.map(idx => (
+                            <button
+                                key={idx.code}
+                                type="button"
+                                className={idx.code === aqi.code ? 'active' : ''}
+                                onClick={() => setAqiCode(idx.code)}
+                            >
+                                {LABELS[idx.code] || idx.displayName || idx.code}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <AqiGauge
+                    title={gaugeTitle}
+                    value={aqi.aqi}
+                    category={aqi.category}
+                    color={color}
+                    dominantPollutant={aqi.dominantPollutant}
+                />
+            </>
         );
     };
 
@@ -529,7 +577,7 @@ export default function Home() {
         if (!currentData || !currentData.healthRecommendations) {
             return <div className="loading-placeholder">Loading health recommendations...</div>;
         }
-        
+
         return (
             <HealthRecommendations recommendations={currentData.healthRecommendations} />
         );
@@ -572,15 +620,8 @@ export default function Home() {
             // Edit an existing saved location's position (keep its name).
             nextUser = updateSavedLocation(user, locationToUpdate, { latitude: lat, longitude: lng, address: city || null });
         } else {
-            // Add a new saved location — prompt for a friendly name first.
-            const customName = window.prompt('Enter a name for this location:', baseName);
-            if (!customName) { close(); return; }
-            if (hasSavedLocationNamed(user, customName)) {
-                alert(`A saved place named "${customName}" already exists.`);
-                close();
-                return;
-            }
-            nextUser = addSavedLocation(user, { name: customName, latitude: lat, longitude: lng, address: city || null });
+            // Add a new saved location, auto-named after the place (no prompt).
+            nextUser = addSavedLocation(user, { name: uniqueFavName(user, baseName), latitude: lat, longitude: lng, address: city || null });
         }
 
         await persistUser(nextUser);
@@ -656,12 +697,36 @@ export default function Home() {
         await persistUser({ ...user, primaryLocation: null });
     };
 
-    const handleSearchLocationForProfile = (type) => {
-        setProfileTab(type === 'primary' ? 'profile' : 'favourites');
+    // --- Location picker (Swiggy-style) handlers ---
+    const goToSavedLocation = (loc) => {
+        const lat = loc.latitude ?? loc.lat;
+        const lng = loc.longitude ?? loc.lng;
+        if (lat == null || lng == null) return;
+        setLocation({ name: loc.name, latitude: lat, longitude: lng });
+        if (mapRef.current?.panTo && window.google) {
+            mapRef.current.panTo(new window.google.maps.LatLng(lat, lng));
+        }
+    };
+
+    const setCurrentAsPrimary = async () => {
+        if (!user || !location) return;
+        await persistUser(setPrimaryLocation(user, {
+            name: location.name, latitude: location.latitude, longitude: location.longitude, address: location.name,
+        }));
+    };
+
+    const addCurrentAsFavourite = async (name) => {
+        const label = (name || '').trim();
+        if (!user || !location || !label || hasSavedLocationNamed(user, label)) return;
+        await persistUser(addSavedLocation(user, {
+            name: label, latitude: location.latitude, longitude: location.longitude, address: location.name,
+        }));
+    };
+
+    const handleSearchLocationForProfile = () => {
+        // Search now lives in the location picker (tap the location name).
         setShowProfileModal(false);
-        setLocationToUpdate(type); // 'add' or 'primary'
-        // We don't need to set isSelectingLocation, just focus the search bar
-        setTimeout(() => searchInputRef.current?.focus(), 100);
+        setShowLocationPicker(true);
     };
 
     const handleGetCurrentLocationForProfile = async () => {
@@ -689,49 +754,7 @@ export default function Home() {
                 <div className={`info-panel${panelOpen ? '' : ' collapsed'}`}>
                     
                     <div className="info-content">
-                        {/* Fixed search section */}
-                        <div className="search-section">
-                            <form className="search-bar" onSubmit={handleSearch} autoComplete="off">
-                                <SearchIcon className="search-icon" />
-                                <input
-                                    ref={searchInputRef}
-                                    type="text"
-                                    placeholder="Search location..."
-                                    value={searchValue}
-                                    onChange={e => setSearchValue(e.target.value)}
-                                    className="search-input"
-                                    disabled={!isMapReady}
-                                />
-                                <button
-                                    type="button"
-                                    className="locate-btn"
-                                    onClick={() => handleLocate()}
-                                    tabIndex={-1}
-                                    aria-label="Locate me"
-                                    disabled={!isMapReady}
-                                >
-                                    <MyLocationIcon />
-                                </button>
-                            </form>
-                            
-                            {/* Autocomplete dropdown */}
-                            {predictions.length > 0 && (
-                                <div className="autocomplete-dropdown">
-                                    {isSearching && <div className="autocomplete-item">Searching...</div>}
-                                    {!isSearching && predictions.map(({ placePrediction }) => (
-                                        <div
-                                            key={placePrediction.placeId}
-                                            className="autocomplete-item"
-                                            onClick={() => handleSelectPrediction(placePrediction.placeId, placePrediction.text.text)}
-                                        >
-                                            {placePrediction.text.text}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Scrollable content area */}
+                        {/* Scrollable content area (search moved to the location picker) */}
                         <div className="scrollable-content">
                             {isLoading && (
                                 <div className="loading-container">
@@ -751,58 +774,42 @@ export default function Home() {
                                 <>
                                     <div className="aqi-header">
                                         <div className="location-display">
-                                            <h1 className="aqi-place">{location.name}</h1>
+                                            <button type="button" className="aqi-place-trigger" onClick={() => setShowLocationPicker(true)}>
+                                                <h1 className="aqi-place">{location.name}</h1>
+                                                <KeyboardArrowDownIcon className="aqi-place-caret" />
+                                            </button>
                                             {location.latitude && location.longitude && (
                                                 <p className="aqi-coords">
                                                     {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
                                                 </p>
                                             )}
                                         </div>
+                                        {weatherData?.temperature?.degrees != null && (
+                                            <div className="weather-chip">
+                                                <span className="weather-icon">{weatherEmoji(weatherData.weatherCondition)}</span>
+                                                <span className="weather-temp">{Math.round(weatherData.temperature.degrees)}°</span>
+                                                {weatherData.weatherCondition?.description?.text && (
+                                                    <span className="weather-cond">{weatherData.weatherCondition.description.text}</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* Render AQI Gauge */}
                                     {renderAqiGauge()}
 
-                                    {/* Heatmap Toggle */}
                                     <HeatmapToggle
                                         checked={showHeatmap}
                                         onChange={() => setShowHeatmap((prev) => !prev)}
                                     />
 
-                                    {/* Pollutants List */}
                                     {currentData && currentData.pollutants && (
-                                        <Pollutants 
-                                            pollutants={currentData.pollutants} 
-                                            onSelect={setSelectedPollutant} 
+                                        <Pollutants
+                                            pollutants={currentData.pollutants}
+                                            onSelect={setSelectedPollutant}
                                         />
                                     )}
-                                    
-                                    {/* Health Recommendations */}
+
                                     {renderHealth()}
-                                    
-                                    {/* Historical Data Chart */}
-                                    {historyData ? (
-                                        <AqiHistoryChart 
-                                            data={historyData} 
-                                            onExpand={() => setChartModalData({ type: 'history', data: historyData })} 
-                                        />
-                                    ) : (
-                                        <div className="chart-container">
-                                            <p className="loading-placeholder">Historical data not available</p>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Forecast Data Chart */}
-                                    {forecastData ? (
-                                        <AqiForecastChart 
-                                            data={forecastData} 
-                                            onExpand={() => setChartModalData({ type: 'forecast', data: forecastData })} 
-                                        />
-                                    ) : (
-                                        <div className="chart-container">
-                                            <p className="loading-placeholder">Forecast data not available</p>
-                                        </div>
-                                    )}
                                 </>
                             )}
                         </div>
@@ -871,10 +878,13 @@ export default function Home() {
                             <MedicalServicesIcon />
                         </button>
                         <button type="button" className="danger" onClick={handleEmergencyClick} aria-label="Emergency information" title="Emergency">
-                            <SosIcon />
+                            <WarningAmberIcon />
                         </button>
                         <button type="button" onClick={handleProfileClick} aria-label="Open profile" title="Profile">
                             <PersonIcon />
+                        </button>
+                        <button type="button" onClick={() => setShowStats(true)} aria-label="Statistics" title="Statistics">
+                            <BarChartIcon />
                         </button>
                         <button type="button" onClick={() => setShowSettings(true)} aria-label="Open settings" title="Settings">
                             <SettingsIcon />
@@ -918,6 +928,10 @@ export default function Home() {
                 <button onClick={handleProfileClick} aria-label="Profile">
                     <PersonIcon />
                     <span>Profile</span>
+                </button>
+                <button onClick={() => setShowStats(true)} aria-label="Statistics">
+                    <BarChartIcon />
+                    <span>Stats</span>
                 </button>
                 <button onClick={() => setShowSettings(true)} aria-label="Settings">
                     <SettingsIcon />
@@ -966,6 +980,35 @@ export default function Home() {
             </div>
 
             {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
+            {showStats && (
+                <StatsModal
+                    onClose={() => setShowStats(false)}
+                    historyData={historyData}
+                    forecastData={forecastData}
+                    weatherData={weatherData}
+                    onExpand={setChartModalData}
+                />
+            )}
+
+            {showLocationPicker && (
+                <LocationPicker
+                    onClose={() => { setShowLocationPicker(false); setSearchValue(''); setPredictions([]); }}
+                    isLoggedIn={isLoggedIn}
+                    user={user}
+                    currentLocation={location}
+                    searchValue={searchValue}
+                    setSearchValue={setSearchValue}
+                    predictions={predictions}
+                    isSearching={isSearching}
+                    onPickPrediction={handleSelectPrediction}
+                    onUseCurrent={() => handleLocate()}
+                    onPickSaved={goToSavedLocation}
+                    onSetPrimary={setCurrentAsPrimary}
+                    onAddFavourite={addCurrentAsFavourite}
+                    onLoginRequest={() => { setShowLocationPicker(false); setLoginPrompt('Log in to save places.'); setShowLoginModal(true); }}
+                />
+            )}
 
             {/* Pollutant Details Modal */}
             {selectedPollutant && (

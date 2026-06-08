@@ -25,6 +25,12 @@ html[data-theme='dark'] {
   --color-primary-100: #222222;
   --color-primary-500: #4da3ff;
   --color-primary-600: #3b82f6;
+  /* Accent (agent panel: run button, trace box, focus ring) — softened so the
+     saturated light-mode purple doesn't glare on the near-black surfaces. */
+  --color-accent-50: #1d1530;
+  --color-accent-100: #2a1f45;
+  --color-accent-500: #a78bfa;
+  --color-accent-600: #8b5cf6;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.55);
@@ -206,12 +212,14 @@ html[data-theme='dark'] .health-recommendations-tab-button .active-icon { color:
 }
 .theme-toggle-btn:hover { color: var(--color-primary-500); transform: scale(1.05); }
 
-/* ---- 7. Smooth sidebar (info-panel) collapse on desktop ------------------
-   It snapped because the grid switched `30% 70%` -> `0 1fr` (mixed units, no
-   interpolation) while the panel separately slid via transform — the two
-   fought. Animate the columns with matching % units and let the panel width
-   drive the motion (transform neutralised when collapsed). Desktop only;
-   the mobile overlay layout below handles small screens. */
+/* ---- 7. Sidebar (info-panel) SLIDE on desktop ----------------------------
+   The panel SLIDES out, it does not wrap. Key trick: the panel keeps a fixed
+   30vw width, so its content can never reflow/squish as the grid column
+   shrinks — instead it translates off-screen. The column animation (30%→0%)
+   and the panel's translateX(-100%) share the same 0.45s easing, so the
+   panel's right edge stays glued to the map's advancing left edge throughout
+   the motion (no gap, no overlap, no reflow). Desktop only; the mobile overlay
+   layout below handles small screens. */
 @media (min-width: 861px) {
   html .main-content {
     grid-template-columns: 30% 70%;
@@ -221,8 +229,13 @@ html[data-theme='dark'] .health-recommendations-tab-button .active-icon { color:
   html .main-content.panel-collapsed {
     grid-template-columns: 0% 100%;
   }
+  html .info-panel {
+    width: 30vw;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
   html .main-content.panel-collapsed .info-panel {
-    transform: none;
+    transform: translateX(-100%);
   }
 }
 

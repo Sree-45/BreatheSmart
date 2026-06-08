@@ -4,6 +4,13 @@ import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import { useTheme } from '../hooks/useTheme';
 import '../styles/Landing.css';
+import AirIcon from '@mui/icons-material/Air';
+import MapIcon from '@mui/icons-material/Map';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import PersonIcon from '@mui/icons-material/Person';
+import InstallMobileIcon from '@mui/icons-material/InstallMobile';
 
 /* ----------------------------- reveal ----------------------------- */
 function useReveal(threshold = 0.16) {
@@ -52,6 +59,10 @@ function Reading() {
         <div><dt>PM10</dt><dd>64</dd></div>
         <div><dt>O₃</dt><dd>34</dd></div>
       </dl>
+      <div className="lp-read-weather">
+        <span className="lp-read-weather-icon" aria-hidden="true">🌤</span>
+        <span className="lp-read-weather-val">29 °C · Partly Cloudy</span>
+      </div>
       <figcaption className="lp-read-src">SOURCE · who_air_quality_guidelines.md</figcaption>
     </figure>
   );
@@ -59,22 +70,51 @@ function Reading() {
 
 /* ------------------------------ data ------------------------------ */
 const STEPS = [
-  { n: '01', t: 'Tell us about you', d: 'Add your conditions and optionally upload a recent report. The text is extracted and indexed privately — scoped to your account alone.' },
-  { n: '02', t: 'We read the air', d: 'Live AQI for your location, the last 24 hours, and an hourly forecast — all on one interactive map.' },
-  { n: '03', t: 'Get verifiable advice', d: 'Guidance tuned to your conditions, shown with the exact documents it was built on, plus an agent that reveals its reasoning.' },
+  { n: '01', t: 'Tell us about you', d: 'Add your health conditions and optionally upload medical reports. Text is extracted and indexed privately — scoped only to your account.' },
+  { n: '02', t: 'We read the air & sky', d: 'Live AQI with NAQI or Universal index, current weather, a 24-hour trend, and an hourly forecast — all on an interactive heatmap.' },
+  { n: '03', t: 'Get verifiable advice', d: 'Guidance tailored to your conditions, backed by the exact WHO, EPA, and clinical documents it was drawn from — plus an AI agent that shows its work.' },
 ];
 
 const FEATURES = [
-  { t: 'Source-cited recommendations', d: 'Every answer cites the specific WHO, EPA and clinical passages used to write it. No black-box output.' },
-  { t: 'Agentic analysis', d: 'A LangGraph agent picks its own tools, pulls live AQI, retrieves guidelines, and shows each step.' },
-  { t: 'History & forecast', d: '24 hours of trend and an hourly outlook — so you see a spike coming, not just the current number.' },
-  { t: 'Personal health profile', d: 'Conditions, vitals and blood type all factor into the guidance you receive.' },
-  { t: 'Privacy by scope', d: 'Uploaded reports become a private namespace only your account can ever retrieve from.' },
-  { t: 'Live air-quality map', d: 'Real-time AQI on an interactive map, with the nearest hospitals when the air turns hazardous.' },
+  {
+    icon: AirIcon,
+    t: 'Live AQI + weather',
+    d: 'Real-time air quality with your choice of NAQI (India) or Universal AQI index, dominant-pollutant breakdown, and current temperature alongside a live animated weather icon.',
+  },
+  {
+    icon: MapIcon,
+    t: 'Interactive heatmap',
+    d: 'Google Maps with a live AQI heatmap overlay, light & dark map styles, and a polished location InfoWindow. Pick a location from the map or use the smart Swiggy-style picker to search, use GPS, or pull from saved favourites.',
+  },
+  {
+    icon: AutoAwesomeIcon,
+    t: 'Source-cited recommendations',
+    d: 'Retrieval-grounded guidance with citations pointing to the exact WHO, EPA, and clinical passages used. Every answer is personalised to your health profile — not generic.',
+  },
+  {
+    icon: PsychologyIcon,
+    t: 'AI agent with trace',
+    d: 'A LangGraph agent fetches live AQI, reasons over your conditions, and returns an answer alongside the full tool-call trace — no black-box output.',
+  },
+  {
+    icon: LocalHospitalIcon,
+    t: 'Emergency help',
+    d: 'One-tap emergency helplines, step-by-step breathing first-aid, and nearby hospitals with call and get-directions links — right when you need them.',
+  },
+  {
+    icon: PersonIcon,
+    t: 'Private health profile',
+    d: 'Upload PDF or image medical reports; text is extracted and privately indexed under your account alone. Conditions, vitals, and history all sharpen your recommendations.',
+  },
+  {
+    icon: InstallMobileIcon,
+    t: 'Installable PWA',
+    d: 'Install as an app on desktop or Android for a native feel. Light/dark theme, adjustable font size, and reduce-motion respect your system preferences.',
+  },
 ];
 
 const BANDS = ['GOOD', 'MODERATE', 'UNHEALTHY (SG)', 'UNHEALTHY', 'VERY UNHEALTHY', 'HAZARDOUS'];
-const SOURCES = ['WHO', 'US EPA', 'AHA', 'NHLBI', 'American Lung Assoc.'];
+const SOURCES = ['WHO', 'US EPA', 'AHA', 'NHLBI', 'American Lung Assoc.', 'CPCB / NAQI'];
 
 /* ------------------------------ page ------------------------------ */
 export default function Landing() {
@@ -119,14 +159,15 @@ export default function Landing() {
         {/* ===== HERO ===== */}
         <section className="lp-hero">
           <div className="lp-hero-copy">
-            <Reveal as="p" className="lp-eyebrow">Personalised air-quality intelligence — est. 2026</Reveal>
+            <Reveal as="p" className="lp-eyebrow">Air quality · health intelligence · est. 2026</Reveal>
             <Reveal as="h1" className="lp-title" delay={70}>
               Know the air.<br />
               <span className="lp-title-em">Trust</span> the advice.
             </Reveal>
             <Reveal as="p" className="lp-lede" delay={150}>
-              Live AQI paired with retrieval-grounded health guidance. Every recommendation is
-              tuned to your conditions — and shows the source document it was built on.
+              Live AQI on an interactive heatmap — NAQI or Universal index, weather alongside it,
+              history &amp; forecast. Every health recommendation is retrieval-grounded,
+              personalised to you, and cites the exact source it came from.
             </Reveal>
             <Reveal className="lp-actions" delay={220}>
               <button type="button" className="lp-btn lg" onClick={enterApp}>Open the app <span aria-hidden="true">→</span></button>
@@ -165,15 +206,18 @@ export default function Landing() {
         {/* ===== FEATURES ===== */}
         <section className="lp-sec" aria-labelledby="feat">
           <p className="lp-kick">／ what you get</p>
-          <h2 id="feat" className="lp-h2">Built for people who actually need clean air.</h2>
+          <h2 id="feat" className="lp-h2">Everything you need to breathe smarter.</h2>
           <div className="lp-grid">
-            {FEATURES.map((f, i) => (
-              <Reveal as="article" key={f.t} className="lp-card" delay={(i % 3) * 60}>
-                <span className="lp-card-i">{String(i + 1).padStart(2, '0')}</span>
-                <h3>{f.t}</h3>
-                <p>{f.d}</p>
-              </Reveal>
-            ))}
+            {FEATURES.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <Reveal as="article" key={f.t} className="lp-card" delay={(i % 3) * 60}>
+                  <span className="lp-card-icon" aria-hidden="true"><Icon fontSize="small" /></span>
+                  <h3>{f.t}</h3>
+                  <p>{f.d}</p>
+                </Reveal>
+              );
+            })}
           </div>
         </section>
 
@@ -195,13 +239,13 @@ export default function Landing() {
             <button type="button" className="lp-btn lg" onClick={enterApp}>Open the app <span aria-hidden="true">→</span></button>
             <button type="button" className="lp-ghost lg" onClick={openSignup}>Create an account</button>
           </Reveal>
-          <p className="lp-fineprint">Free during the dev preview · no credit card · your health data stays on your account.</p>
+          <p className="lp-fineprint">Free during dev preview · no credit card · your health data is scoped to your account, never shared.</p>
         </section>
       </main>
 
       <footer className="lp-footer">
         <span className="lp-brand sm">Breathe<span>Smart</span><i className="lp-brand-dot" aria-hidden="true" /></span>
-        <span className="lp-foot-tag">Air-quality intelligence, with sources.</span>
+        <span className="lp-foot-tag">Air quality · weather · health intelligence, with sources.</span>
         <span className="lp-foot-meta">2026 — built with React · Spring · FastAPI · Groq</span>
       </footer>
 

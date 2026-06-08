@@ -1,6 +1,6 @@
 /* SavedPlaces — saved/favourite places modal. Token-driven for light + dark. */
 .saved-places-modal {
-  max-width: 800px;
+  max-width: 760px;
   width: 90%;
   background: var(--color-bg);
   border-radius: var(--radius-lg);

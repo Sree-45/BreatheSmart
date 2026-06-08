@@ -32,7 +32,7 @@ const LoginModal = ({ onClose, onLoginSuccess, onSwitchToSignup }) => {
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">Log in to access your dashboard.</p>
         </div>
-        <button className="modal-close-btn" onClick={onClose}>
+        <button className="modal-close-btn" onClick={onClose} aria-label="Close">
             <CloseIcon />
         </button>
         <form onSubmit={handleLogin} className="auth-form">

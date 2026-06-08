@@ -1,15 +1,18 @@
 services:
 
-  mongo:
-    image: mongo:7
-    container_name: breathe-mongo
+  mysql:
+    image: mysql:8.4
+    container_name: breathe-mysql
     restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: breathesmart
     ports:
-      - "27017:27017"
+      - "3306:3306"
     volumes:
-      - mongo_data:/data/db
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,7 +30,7 @@ services:
       LOG_FORMAT: json
       LOG_LEVEL: INFO
       UVICORN_RELOAD: "false"
-      CORS_ALLOWED_ORIGINS: http://localhost:5173,https://localhost:5173,http://backend:8080
+      CORS_ALLOWED_ORIGINS: http://localhost:5173,https://localhost:5173,http://backend:8081
     ports:
       - "8000:8000"
     volumes:
@@ -42,18 +45,20 @@ services:
     container_name: breathe-backend
     restart: unless-stopped
     depends_on:
-      mongo:
+      mysql:
         condition: service_healthy
       rag-service:
         condition: service_started
     environment:
-      SPRING_DATA_MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/breathesmart}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/breathesmart?createDatabaseIfNotExist=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
       RAG_SERVICE_BASE_URL: http://rag-service:8000
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
       # LLM (Groq) key/model are hardcoded in application.properties for now, so no env needed.
       APP_UPLOADS_DIR: /app/uploads/reports
     ports:
-      - "8080:8080"
+      - "8081:8081"
     volumes:
       - backend_uploads:/app/uploads
     networks: [breathe-net]
@@ -63,6 +68,6 @@ networks:
     driver: bridge
 
 volumes:
-  mongo_data:
+  mysql_data:
   chroma_data:
   backend_uploads:

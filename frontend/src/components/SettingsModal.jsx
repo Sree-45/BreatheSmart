@@ -3,13 +3,18 @@ import '../styles/SettingsModal.css';
 import CloseIcon from '@mui/icons-material/Close';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import InstallMobileIcon from '@mui/icons-material/InstallMobile';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import IosShareIcon from '@mui/icons-material/IosShare';
 import { useTheme } from '../hooks/useTheme';
 import { useFontScale, useReduceMotion, FONT_SCALE_OPTIONS } from '../hooks/useSettings';
+import { usePwaInstall } from '../hooks/usePwaInstall';
 
 export default function SettingsModal({ onClose }) {
   const { theme, setTheme } = useTheme();
   const { fontScale, setFontScale } = useFontScale();
   const { reduceMotion, setReduceMotion } = useReduceMotion();
+  const { canInstall, isInstalled, isIos, promptInstall } = usePwaInstall();
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -83,6 +88,39 @@ export default function SettingsModal({ onClose }) {
                 <span className="settings-switch-track" aria-hidden="true" />
               </label>
             </div>
+          </div>
+
+          {/* Install as app (PWA — desktop Chrome/Edge + Android Chrome) */}
+          <div className="settings-group">
+            <span className="settings-label">App</span>
+            {isInstalled ? (
+              <div className="settings-install-row installed">
+                <CheckCircleIcon fontSize="small" />
+                <span>Installed — launch BreatheSmart from your home screen or desktop.</span>
+              </div>
+            ) : isIos ? (
+              <p className="settings-install-hint">
+                <IosShareIcon fontSize="small" /> On iPhone/iPad, open in Safari, tap{' '}
+                <strong>Share</strong>, then <strong>Add to Home Screen</strong>.
+              </p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="settings-install-btn"
+                  onClick={() => promptInstall()}
+                  disabled={!canInstall}
+                >
+                  <InstallMobileIcon fontSize="small" />
+                  <span>Install as app</span>
+                </button>
+                <p className="settings-install-hint">
+                  {canInstall
+                    ? 'Adds BreatheSmart to your desktop or Android home screen — opens in its own window, no browser tabs.'
+                    : 'Use Chrome or Edge (desktop or Android). If this is greyed out, browse the app for a moment, then reopen Settings.'}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

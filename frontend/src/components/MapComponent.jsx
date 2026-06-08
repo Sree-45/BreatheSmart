@@ -29,6 +29,31 @@ const DARK_MAP_STYLE = [
     { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d3d3d' }] },
 ];
 
+// Explicit LIGHT styled-map JSON. Using a full style (rather than []) forces a
+// light map regardless of the OS colour-scheme, and — crucially — lets the map
+// repaint to light when toggling back from dark in the same session (the
+// `colorScheme` option can only be set when the map is first created).
+const LIGHT_MAP_STYLE = [
+    { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+    { elementType: 'labels.icon', stylers: [{ visibility: 'on' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
+    { featureType: 'administrative.land_parcel', elementType: 'labels.text.fill', stylers: [{ color: '#bdbdbd' }] },
+    { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
+    { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+    { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#d9ead3' }] },
+    { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#6b9a76' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+    { featureType: 'road.arterial', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#dadada' }] },
+    { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+    { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+    { featureType: 'transit.line', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
+    { featureType: 'transit.station', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9e6ff' }] },
+    { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+];
+
 const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocationUpdate, onLocationConfirm, userLocation, isSelecting, theme }, ref) => {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
@@ -158,7 +183,14 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                     center: { lat: defaultLocation.latitude || defaultLocation.lat, lng: defaultLocation.longitude || defaultLocation.lng },
                     zoom: mapConfig.defaultZoom,
                     ...mapConfig.mapOptions,
-                    styles: theme === 'dark' ? DARK_MAP_STYLE : (mapConfig.mapStyles || [])
+                    // Declutter the top-right corner so Google's controls don't collide
+                    // with our floating action dock. Keep zoom (bottom-right).
+                    mapTypeControl: false,
+                    fullscreenControl: false,
+                    streetViewControl: false,
+                    // Explicit light/dark styles (not colorScheme) so theme toggles
+                    // repaint the map both ways within a session.
+                    styles: theme === 'dark' ? DARK_MAP_STYLE : LIGHT_MAP_STYLE
                 };
 
                 const mapInstance = new window.google.maps.Map(mapRef.current, mapOptions);
@@ -200,8 +232,13 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                 mapInstanceRef.current.overlayMapTypes.push(airQualityOverlay);
                 airQualityOverlayRef.current = airQualityOverlay;
                 infoWindowRef.current = new window.google.maps.InfoWindow({
-                    // Disable the default 'x' close button
                     disableAutoPan: true,
+                    headerDisabled: true, // we render our own header + close button for full control
+                });
+                // Wire our custom close button each time the content (re)renders.
+                infoWindowRef.current.addListener('domready', () => {
+                    const closeBtn = document.getElementById('bs-iw-close');
+                    if (closeBtn) closeBtn.onclick = () => infoWindowRef.current?.close();
                 });
 
                 // --- Helper function to get color from AQI value ---
@@ -307,15 +344,15 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
 
                     // --- 1. Show a placeholder info window immediately ---
                     const placeholderContent = `
-                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; padding: 8px; width: 250px;">
-                            <p style="margin: 0 0 12px 0; font-size: 13px; font-weight: 500; color: #555;">Fetching data...</p>
-                            <div style="display: flex; align-items: center; gap: 16px;">
-                                <div style="width: 60px; height: 60px; background-color: #e0e7ef; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                    <div style="width: 24px; height: 24px; border: 3px solid rgba(0,0,0,0.2); border-left-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <div class="bs-iw">
+                            <div class="bs-iw-loc"><span style="display:inline-block;height:12px;width:55%;background:var(--color-bg-subtle);border-radius:4px;"></span></div>
+                            <div class="bs-iw-body">
+                                <div class="bs-iw-badge" style="background:var(--color-bg-subtle);box-shadow:none;">
+                                    <span style="display:inline-block;width:18px;height:18px;border:3px solid rgba(128,128,128,0.25);border-left-color:var(--color-primary-500);border-radius:50%;animation:spin 0.9s linear infinite;"></span>
                                 </div>
-                                <div style="flex: 1;">
-                                    <div style="height: 16px; width: 80%; background-color: #e0e7ef; border-radius: 4px; margin-bottom: 8px;"></div>
-                                    <div style="height: 12px; width: 60%; background-color: #e0e7ef; border-radius: 4px;"></div>
+                                <div class="bs-iw-info">
+                                    <div style="height:13px;width:80%;background:var(--color-bg-subtle);border-radius:4px;margin-bottom:7px;"></div>
+                                    <div style="height:10px;width:55%;background:var(--color-bg-subtle);border-radius:4px;"></div>
                                 </div>
                             </div>
                         </div>
@@ -364,18 +401,17 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                                 : getAqiColor(aqiIndex.aqi);
 
                             const aqiContent = `
-                                <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 14px; padding: 0; width: 260px; border-radius: 8px;">
-                                    <div style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">
-                                        <p id="infowindow-location" style="margin: 0; font-size: 15px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading location...</p>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 16px; padding: 16px;">
-                                        <div style="width: 64px; height: 64px; background-color: ${aqiColor}; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.15);">
-                                            <span style="font-size: 24px; font-weight: bold; line-height: 1;">${aqiIndex.aqi}</span>
-                                            <span style="font-size: 10px; font-weight: 500; margin-top: 2px; opacity: 0.9;">NAQI</span>
+                                <div class="bs-iw">
+                                    <button class="bs-iw-close" id="bs-iw-close" aria-label="Close">&times;</button>
+                                    <div class="bs-iw-loc" id="infowindow-location">Loading location…</div>
+                                    <div class="bs-iw-body">
+                                        <div class="bs-iw-badge" style="background-color:${aqiColor};">
+                                            <span class="bs-iw-aqi">${aqiIndex.aqi}</span>
+                                            <span class="bs-iw-label">NAQI</span>
                                         </div>
-                                        <div style="flex: 1;">
-                                            <p style="margin: 0 0 4px 0; font-size: 18px; font-weight: 600; color: #222;">${aqiIndex.category}</p>
-                                            <p style="margin: 0; color: #555; font-size: 13px;">Dominant: <strong style="color: #333;">${aqiIndex.dominantPollutant.toUpperCase()}</strong></p>
+                                        <div class="bs-iw-info">
+                                            <div class="bs-iw-cat">${aqiIndex.category}</div>
+                                            <div class="bs-iw-dom">Dominant <strong>${aqiIndex.dominantPollutant.toUpperCase()}</strong></div>
                                         </div>
                                     </div>
                                 </div>`;
@@ -416,7 +452,8 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
                 });
 
                 // Add control to the map
-                mapInstanceRef.current.controls[window.google.maps.ControlPosition.TOP_RIGHT].push(recenterControlDiv);
+                // Bottom-right (above zoom) so it never overlaps the top-right action dock.
+                mapInstanceRef.current.controls[window.google.maps.ControlPosition.RIGHT_BOTTOM].push(recenterControlDiv);
 
                 // If user location is already available, show the marker now
                 if (userLocation && userLocation.lat && userLocation.lng) {
@@ -469,7 +506,7 @@ const MapComponent = forwardRef(({ showHeatmap = true, initialLocation, onLocati
     useEffect(() => {
         if (mapInstanceRef.current) {
             mapInstanceRef.current.setOptions({
-                styles: theme === 'dark' ? DARK_MAP_STYLE : (mapConfig?.mapStyles || [])
+                styles: theme === 'dark' ? DARK_MAP_STYLE : LIGHT_MAP_STYLE
             });
         }
     }, [theme, mapConfig]);

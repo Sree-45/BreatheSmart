@@ -2,7 +2,7 @@
    All values reference design tokens defined in App.css. */
 
 .health-recs-modal {
-    max-width: 600px;
+    max-width: 760px;
     width: 90%;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
@@ -401,7 +401,7 @@
 .agent-panel-field input:focus {
     outline: none;
     border-color: var(--color-accent-500);
-    box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.12);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-500) 12%, transparent);
 }
 
 .agent-panel-run-btn {

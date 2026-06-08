@@ -9,14 +9,14 @@ BreatheSmart is a full-stack air-quality + health-intelligence platform built fr
 | Service | Stack | Port | Role |
 |---|---|---|---|
 | `frontend` | React 19 + Vite (HTTPS dev) | 5173 | UI. Calls the backend via the Vite `/api` proxy for AQI/auth/profile/AI, **and calls Google Maps/Places/Geocoding directly** with a browser-side key |
-| `backend` | Spring Boot 3.5 + MongoDB + JWT + Spring AI | 8080 | Auth, persistence, Google API orchestration, AI proxy |
+| `backend` | Spring Boot 3.5 + MySQL (Spring Data JPA) + JWT + Spring AI | 8081 | Auth, persistence, Google API orchestration, AI proxy |
 | `rag-service` | FastAPI + LangChain + LangGraph + Groq (OpenAI-compatible) + ChromaDB | 8000 | **All RAG/agent/LLM-retrieval logic lives here** |
 
 `PROJECT_CONTEXT.txt` (repo root) is a long-form design/context document — consult it for product rationale, but code is the source of truth.
 
 ## Commands
 
-**Run everything (Docker):** `docker compose up --build` — starts Mongo, rag-service, backend. The frontend stays local (HTTPS + hot reload). Then `cd frontend; npm install; npm run dev`.
+**Run everything (Docker):** `docker compose up --build` — starts MySQL, rag-service, backend. The frontend stays local (HTTPS + hot reload). Then `cd frontend; npm install; npm run dev`.
 
 **Frontend** (`cd frontend`):
 - `npm run dev` — Vite dev server on https://localhost:5173 (self-signed via `@vitejs/plugin-basic-ssl`)
@@ -25,10 +25,10 @@ BreatheSmart is a full-stack air-quality + health-intelligence platform built fr
 - Supply `VITE_GOOGLE_MAPS_API_KEY` (env, or replace the placeholder in [airQualityService.js](frontend/src/services/airQualityService.js)) for the map/places features
 
 **Backend** (`cd backend`, uses Maven wrapper):
-- `./mvnw spring-boot:run` (or `.\mvnw.cmd` on Windows) — port 8080
+- `./mvnw spring-boot:run` (or `.\mvnw.cmd` on Windows) — port 8081
 - `./mvnw test` — full test suite
 - `./mvnw test -Dtest=BackendApplicationTests#methodName` — single test
-- Requires env: `JWT_SECRET`. The Groq LLM key and Google Maps key default to **placeholders** in `application.properties` — set `GROQ_API_KEY` / `GOOGLE_MAPS_API_KEY` env vars (no `.env` needed) or replace in place (see secrets note below)
+- Requires env: `JWT_SECRET`, plus a reachable **MySQL** (default datasource `jdbc:mysql://localhost:3306/breathesmart?createDatabaseIfNotExist=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false`, creds `root`/`root`). Hibernate `ddl-auto=update` auto-creates the schema, so no manual table setup is needed. Override the datasource with `SPRING_DATASOURCE_URL` / `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD`. The Groq LLM key and Google Maps key default to **placeholders** in `application.properties` — set `GROQ_API_KEY` / `GOOGLE_MAPS_API_KEY` env vars (no `.env` needed) or replace in place (see secrets note below)
 
 **rag-service** (`cd rag-service`):
 - `python -m venv venv; venv\Scripts\activate` (or `source venv/bin/activate`); `pip install -r requirements.txt`
@@ -46,7 +46,7 @@ Restrict the Maps browser key by HTTP referrer in the Google Cloud console.
 ## Architecture — the important boundaries
 
 ### The Spring↔Python split is the central design decision
-The backend is a **thin orchestrator**, not where AI happens. It owns the `User` (MongoDB), authentication, and Google API calls, then delegates anything retrieval/agent-related to the Python service. `RagServiceClient` ([backend/.../service/RagServiceClient.java](backend/src/main/java/com/sreeshanth/backend/service/RagServiceClient.java)) is the single seam — it maps Spring domain objects into the rag-service JSON contract and calls `/recommend`, `/agent/analyze`, `/ingest/report`. When changing the AI contract, **both sides must change together**: `RagDtos` (Spring) and the Pydantic models in the routers (Python).
+The backend is a **thin orchestrator**, not where AI happens. It owns the `User` (a JPA `@Entity` persisted to MySQL), authentication, and Google API calls, then delegates anything retrieval/agent-related to the Python service. `RagServiceClient` ([backend/.../service/RagServiceClient.java](backend/src/main/java/com/sreeshanth/backend/service/RagServiceClient.java)) is the single seam — it maps Spring domain objects into the rag-service JSON contract and calls `/recommend`, `/agent/analyze`, `/ingest/report`. When changing the AI contract, **both sides must change together**: `RagDtos` (Spring) and the Pydantic models in the routers (Python).
 
 ### The backend's three AI endpoints — two delegate to Python, one runs in Java
 `AiController` ([AiController.java](backend/src/main/java/com/sreeshanth/backend/controller/AiController.java)) exposes three POST endpoints; they are **not** interchangeable:
@@ -68,10 +68,10 @@ Both LLM execution sites talk to **Groq** via its OpenAI-compatible Chat Complet
 - **Ingestion**: `/ingest/global` indexes everything in `./data/` into the `global` collection (**idempotent** — stable chunk IDs, so re-running upserts instead of duplicating); `/ingest/report` LLM-validates that text is medical, then indexes it under a per-user scope. Both go through `loader → splitter (800/120 chunks) → vectorstore`.
 
 ### Per-user retrieval scoping (key invariant)
-Every chunk in Chroma carries a `scope` metadata field: `"global"` for corpus docs, `"user_<mongoId>"` for a user's uploaded reports. `retrieve()` ([retriever.py](rag-service/app/rag/retriever.py)) filters with `{"scope": {"$in": ["global", "user_<id>"]}}` so a user only ever sees global guidelines + their own reports — never another user's. Chroma uses **L2 distance (lower = more similar)**; `has_relevant_results` compares against `similarity_threshold` (1.2). Both `similarity_threshold` and `retriever_k` are read from `settings` at query time — `run_recommendation` passes `k=settings.retriever_k` ([pipeline.py](rag-service/app/rag/pipeline.py)) — so RAGAS can sweep them via env without code edits. Chunks are also tagged at ingest with `topic`/`pollutants`/`aqi_bands` metadata.
+Every chunk in Chroma carries a `scope` metadata field: `"global"` for corpus docs, `"user_<userId>"` for a user's uploaded reports (the user `id` is a String UUID, unchanged by the MySQL migration). `retrieve()` ([retriever.py](rag-service/app/rag/retriever.py)) filters with `{"scope": {"$in": ["global", "user_<id>"]}}` so a user only ever sees global guidelines + their own reports — never another user's. Chroma uses **L2 distance (lower = more similar)**; `has_relevant_results` compares against `similarity_threshold` (1.2). Both `similarity_threshold` and `retriever_k` are read from `settings` at query time — `run_recommendation` passes `k=settings.retriever_k` ([pipeline.py](rag-service/app/rag/pipeline.py)) — so RAGAS can sweep them via env without code edits. Chunks are also tagged at ingest with `topic`/`pollutants`/`aqi_bands` metadata.
 
 ### Report upload flow
-`POST /api/users/{id}/reports` (multipart, [ReportUploadController.java](backend/src/main/java/com/sreeshanth/backend/controller/ReportUploadController.java)): save to disk (`FileStorageService`) → **Apache Tika** extracts text → forward to Python `/ingest/report` → append a `Report` to `user.pastReports`. If the rag-service rejects/unreachable, the uploaded file is deleted (soft-fail) and no Mongo row is written. A 400 from Python (non-medical doc) is surfaced as a 400 to the client.
+`POST /api/users/{id}/reports` (multipart, [ReportUploadController.java](backend/src/main/java/com/sreeshanth/backend/controller/ReportUploadController.java)): save to disk (`FileStorageService`) → **Apache Tika** extracts text → forward to Python `/ingest/report` → append a `Report` to `user.pastReports`. If the rag-service rejects/unreachable, the uploaded file is deleted (soft-fail) and no row is persisted to MySQL. A 400 from Python (non-medical doc) is surfaced as a 400 to the client.
 
 ### Auth
 JWT, stateless sessions ([SecurityConfig.java](backend/src/main/java/com/sreeshanth/backend/config/SecurityConfig.java)). Public: `/api/auth/**`, `/api/map/**`, `/api/air-quality/**`. Authenticated: `/api/ai/**`, `/api/users/**`. `JwtAuthFilter` resolves the `User` as `@AuthenticationPrincipal`. Frontend stores `authToken` + `user` in `localStorage`; the axios interceptor ([frontend/src/services/api.js](frontend/src/services/api.js)) attaches the Bearer header and **wipes both keys on any 401/403** (a `user` without a matching `authToken` is the classic "asks me to log in again" bug).
@@ -82,7 +82,7 @@ The frontend is only two routes ([App.jsx](frontend/src/App.jsx)): `/` → `Land
 
 ## Conventions & gotchas
 
-- **Frontend never calls the Python rag-service directly** — all AI goes browser → backend `/api/ai/*` (Vite proxy → :8080) → rag-service over the Docker network. (It *does* call Google Maps/Places/Geocoding directly, though — see "Where Google APIs are actually called" above.)
+- **Frontend never calls the Python rag-service directly** — all AI goes browser → backend `/api/ai/*` (Vite proxy → :8081) → rag-service over the Docker network. (It *does* call Google Maps/Places/Geocoding directly, though — see "Where Google APIs are actually called" above.)
 - **Servlet stack is pinned** (`spring.main.web-application-type=servlet`); webflux is on the classpath *only* for `WebClient`. Don't assume a reactive app.
 - **Corpus filenames are user-facing**: `data/` doc filenames (convention `<source>_<topic>.pdf`) appear verbatim in the `/recommend` response's `sources[].source`. Make them descriptive. `data/pdfs/` is gitignored — drop real PDFs there and re-ingest.
 - **To rebuild the index from scratch**: stop rag-service, delete `rag-service/chroma_db/` (or `docker volume rm breathesmart_chroma_data`), then re-`/ingest/global`.

@@ -61,6 +61,19 @@ public class ReportUploadController {
             return ResponseEntity.badRequest().body(Map.of("error", "File is empty."));
         }
 
+        // Only PDFs or images are accepted. Check the declared content type and
+        // fall back to the filename extension (content type can be missing/spoofed).
+        String declaredType = file.getContentType();
+        String originalName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
+        boolean isPdf = "application/pdf".equalsIgnoreCase(declaredType) || originalName.endsWith(".pdf");
+        boolean isImage = (declaredType != null && declaredType.toLowerCase().startsWith("image/"))
+                || originalName.matches(".*\\.(jpe?g|png|webp|gif|bmp|heic|heif|tiff?)$");
+        if (!isPdf && !isImage) {
+            return ResponseEntity.status(415).body(Map.of(
+                    "error", "Only PDF or image files are accepted."
+            ));
+        }
+
         FileStorageService.StoredFile stored;
         try {
             stored = fileStorage.store(userId, file);

@@ -21,3 +21,11 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+// Register the service worker so the app meets PWA installability criteria
+// (lets "Install as app" work on desktop Chrome/Edge + Android Chrome).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* non-fatal */ })
+  })
+}

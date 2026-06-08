@@ -177,6 +177,69 @@
   outline-offset: 2px;
 }
 
+/* --- Install as app (PWA) ----------------------------------------- */
+
+.settings-install-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-primary-500);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-500);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.settings-install-btn:hover:not(:disabled) {
+  background: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+}
+
+.settings-install-btn:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.settings-install-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-install-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
+
+.settings-install-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.settings-install-row.installed svg {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
 /* --- Global reduce-motion rule ------------------------------------ */
 
 html[data-reduce-motion] *,

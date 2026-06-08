@@ -34,7 +34,6 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
       // eslint-disable-next-line no-unused-vars -- intentionally dropped from payload
       const { confirmPassword, ...signupData } = formData;
       await signup(signupData);
-      alert('Signup successful! Please log in.');
       onSwitchToLogin();
     } catch (err) {
       setError(err.message);
@@ -50,7 +49,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
           <h1 className="auth-title">Create Account</h1>
           <p className="auth-subtitle">Start your journey with BreatheSmart.</p>
         </div>
-        <button className="modal-close-btn" onClick={onClose}>
+        <button className="modal-close-btn" onClick={onClose} aria-label="Close">
             <CloseIcon />
         </button>
         <form onSubmit={handleSignup} className="auth-form">

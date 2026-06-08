@@ -1,0 +1,19 @@
+{
+  "name": "BreatheSmart — Air-quality intelligence",
+  "short_name": "BreatheSmart",
+  "description": "Live air quality paired with source-cited, personalised health guidance.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0a",
+  "theme_color": "#2f6fed",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

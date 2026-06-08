@@ -23,25 +23,30 @@ async function postJson(url, body) {
   return res.json();
 }
 
-/** Try the backend first; on any failure call Google directly with the browser key. */
-async function backendThenDirect(path, backendBody, directBody) {
+/**
+ * Look up AQI. Calls Google directly with the browser key first — it's fast and
+ * the key is already used client-side for maps/heatmap/the InfoWindow — and only
+ * falls back to the Spring backend proxy if the direct call fails. (Backend-first
+ * made the side panel wait on the proxy, which is why it felt slow.)
+ */
+async function aqiLookup(path, backendBody, directBody) {
+  const endpoint = {
+    '/current': 'currentConditions:lookup',
+    '/history': 'history:lookup',
+    '/forecast': 'forecast:lookup',
+  }[path];
   try {
-    return await postJson(`${BACKEND_URL}${path}`, backendBody);
+    return await postJson(`${GOOGLE_AQ}/${endpoint}?key=${GOOGLE_MAPS_API_KEY}`, directBody);
   } catch (e) {
-    console.warn(`AQI ${path} via backend failed (${e.message}); calling Google directly.`);
-    const endpoint = {
-      '/current': 'currentConditions:lookup',
-      '/history': 'history:lookup',
-      '/forecast': 'forecast:lookup',
-    }[path];
-    return postJson(`${GOOGLE_AQ}/${endpoint}?key=${GOOGLE_MAPS_API_KEY}`, directBody);
+    console.warn(`AQI ${path} direct failed (${e.message}); trying backend proxy.`);
+    return postJson(`${BACKEND_URL}${path}`, backendBody);
   }
 }
 
 /** Current air quality for a location ({latitude, longitude}). */
 export const fetchCurrentConditions = async (location) => {
   const loc = { latitude: location.latitude, longitude: location.longitude };
-  return backendThenDirect(
+  return aqiLookup(
     '/current',
     { location: loc },
     {
@@ -61,7 +66,7 @@ export const fetchCurrentConditions = async (location) => {
 /** Historical air quality (up to `hours` back). */
 export const fetchHistoricalData = async (location, hours = 24) => {
   const loc = { latitude: location.latitude, longitude: location.longitude };
-  return backendThenDirect(
+  return aqiLookup(
     '/history',
     { location: loc, hours },
     {
@@ -89,7 +94,7 @@ export const fetchForecastData = async (location) => {
   const endTime = new Date(startTime.getTime() + 24 * 60 * 60 * 1000);
 
   try {
-    const json = await backendThenDirect(
+    const json = await aqiLookup(
       '/forecast',
       { location: loc },
       {
@@ -120,4 +125,20 @@ export const getPreferredAqi = (indexes) => {
     indexes.find((idx) => idx.code === 'uaqi') ||
     null
   );
+};
+
+/**
+ * Current weather for a location ({latitude, longitude}) via Google's Weather
+ * API (METRIC units → °C). Requires the **Weather API** enabled on the key.
+ */
+export const fetchWeatherConditions = async (location) => {
+  const url =
+    `https://weather.googleapis.com/v1/currentConditions:lookup` +
+    `?key=${GOOGLE_MAPS_API_KEY}` +
+    `&location.latitude=${location.latitude}` +
+    `&location.longitude=${location.longitude}` +
+    `&unitsSystem=METRIC`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Weather HTTP ${res.status}`);
+  return res.json();
 };
